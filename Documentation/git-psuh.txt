@@ -1,0 +1,40 @@
+git-psuh(1)
+===========
+
+NAME
+----
+git-psuh - Delight users' typo with a shy horse
+
+
+SYNOPSIS
+--------
+[verse]
+'git-psuh'
+
+DESCRIPTION
+-----------
+
+Prints some interesting information about your current context, then shows you
+a nice pony who is feeling a little shy.
+
+This is a toy command for the "My First Contribution" code lab.
+
+OPTIONS
+-------
+Any options passed to git-psuh will be printed to stdout.
+
+OUTPUT
+------
+
+The output will show some interesting information:
+
+* The full list of arguments passed in
+* The prefix to the command, if given
+* Your name as configured by your git-config
+* Your current branch
+* A shy pony
+
+
+GIT
+---
+Part of the linkgit:git[1] suite
