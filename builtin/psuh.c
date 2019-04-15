@@ -6,7 +6,9 @@
 
 #include <stdio.h>
 #include "builtin.h"
+#include "commit.h"
 #include "config.h"
+#include "pretty.h"
 #include "wt-status.h"
 
 /* This string is marked translatable with N_ as it is const. When it is
@@ -26,6 +28,8 @@ int cmd_psuh(int argc, const char **argv, const char *prefix)
 {
 	const char *cfg_name;
 	struct wt_status status;
+	struct commit *c = NULL;
+	struct strbuf commitline = STRBUF_INIT;
 
 	printf(Q_("Your args (there is %d):\n",
 		  "Your args (there are %d):\n",
@@ -44,6 +48,12 @@ int cmd_psuh(int argc, const char **argv, const char *prefix)
 		printf(_("Your name: %s\n"), cfg_name);
 
 	printf(_("Your current branch: %s\n"), status.branch);
+
+	c = lookup_commit_reference_by_name("origin/master");
+	if (c != NULL) {
+		pp_commit_easy(CMIT_FMT_ONELINE, c, &commitline);
+		printf(_("Current commit: %s\n"), commitline.buf);
+	}
 
 	printf("%s\n", _(psuh));
 	return 0;
