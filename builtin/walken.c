@@ -8,6 +8,19 @@
 #include "parse-options.h"
 
 
+/*
+ * Within init_walken_defaults() we can call into other useful defaults to set
+ * in the global scope or on the_repository. It's okay to borrow from other
+ * functions which are doing something relatively similar to yours.
+ */
+static void init_walken_defaults(void)
+{
+	/*
+	 * We don't actually need the same components `git log` does; leave this
+	 * empty for now.
+	 */
+}
+
 int cmd_walken(int argc, const char **argv, const char *prefix)
 {
 	/*
@@ -28,6 +41,8 @@ int cmd_walken(int argc, const char **argv, const char *prefix)
 	 * provided, or if '-h' is passed.
 	 */
 	argc = parse_options(argc, argv, prefix, options, walken_usage, 0);
+
+	init_walken_defaults();
 
 	/*
 	 * This line is "human-readable" and we are writing a plumbing command,
