@@ -5,6 +5,7 @@
  */
 
 #include "builtin.h"
+#include "revision.h"
 #include "config.h"
 #include "parse-options.h"
 
@@ -20,6 +21,40 @@ static void init_walken_defaults(void)
 	 * We don't use any other components or have settings to initialize, so
 	 * leave this empty.
 	 */
+}
+
+/*
+ * Perform configuration for commit walk here. Within this function we set a
+ * starting point, and can customize our walk in various ways.
+ */
+static void final_rev_info_setup(int argc, const char **argv, const char *prefix,
+		struct rev_info *rev)
+{
+	/*
+	 * Optional:
+	 * setup_revision_opt is used to pass options to the setup_revisions()
+	 * call. It's got some special items for submodules and other types of
+	 * optimizations, but for now, we'll just point it to HEAD. First we
+	 * should make sure to reset it. This is useful for more complicated
+	 * stuff but a decent shortcut for the first pass is
+	 * add_head_to_pending().
+	 */
+
+	/*
+	 * struct setup_revision_opt opt;
+
+	 * memset(&opt, 0, sizeof(opt));
+	 * opt.def = "HEAD";
+	 * opt.revarg_opt = REVARG_COMMITTISH;
+	 * setup_revisions(argc, argv, rev, &opt);
+	 */
+
+	/* add the HEAD to pending so we can start */
+	add_head_to_pending(rev);
+
+	/* Let's force oneline format. */
+	get_commit_format("oneline", rev);
+	rev->verbose_header = 1;
 }
 
 /*
@@ -62,6 +97,8 @@ int cmd_walken(int argc, const char **argv, const char *prefix)
 		OPT_END()
 	};
 
+	struct rev_info rev;
+
 	/*
 	 * parse_options() handles showing usage if incorrect options are
 	 * provided, or if '-h' is passed.
@@ -71,6 +108,19 @@ int cmd_walken(int argc, const char **argv, const char *prefix)
 	init_walken_defaults();
 
 	git_config(git_walken_config, NULL);
+
+	/*
+	 * Time to set up the walk. repo_init_revisions sets up rev_info with
+	 * the defaults, but then you need to make some configuration settings
+	 * to make it do what's special about your walk.
+	 */
+	repo_init_revisions(the_repository, &rev, prefix);
+
+	/*
+	 * Before we do the walk, we need to set a starting point by giving it
+	 * something to go in `pending` - that happens in here
+	 */
+	final_rev_info_setup(argc, argv, prefix, &rev);
 
 	/*
 	 * This line is "human-readable" and we are writing a plumbing command,
