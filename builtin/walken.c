@@ -7,8 +7,11 @@
 #include <stdio.h>
 #include "builtin.h"
 #include "revision.h"
+#include "commit.h"
 #include "config.h"
 #include "parse-options.h"
+#include "pretty.h"
+#include "line-log.h"
 
 static const char * const walken_usage[] = {
 	N_("git walken"),
@@ -78,6 +81,39 @@ static int git_walken_config(const char *var, const char *value, void *cb)
 	return git_default_config(var, value, cb);
 }
 
+/*
+ * walken_commit_walk() is invoked by cmd_walken() after initialization. It
+ * does the commit walk only.
+ */
+static int walken_commit_walk(struct rev_info *rev)
+{
+	struct commit *commit;
+	struct strbuf prettybuf;
+
+	strbuf_init(&prettybuf, 0);
+
+
+	/* prepare_revision_walk() gets the final steps ready for a revision
+	 * walk. We check the return value for errors. */
+	if (prepare_revision_walk(rev)) {
+		die(_("revision walk setup failed"));
+	}
+
+	/* Now we can start the real commit walk. get_revision grabs the next
+	 * revision based on the contents of rev.
+	 */
+	rev->diffopt.close_file = 0;
+	while ((commit = get_revision(rev)) != NULL) {
+		if (commit == NULL)
+			continue;
+		strbuf_reset(&prettybuf);
+		pp_commit_easy(CMIT_FMT_ONELINE, commit, &prettybuf);
+		printf(_("%s\n"), prettybuf.buf);
+
+	}
+	return 0;
+}
+
 int cmd_walken(int argc, const char **argv, const char *prefix)
 {
 	struct option options[] = {
@@ -98,9 +134,14 @@ int cmd_walken(int argc, const char **argv, const char *prefix)
 	 */
 	repo_init_revisions(the_repository, &rev, prefix);
 
+	/* We can set our traversal flags here. */
+	rev.always_show_header = 1;
+
 	/* Before we do the walk, we need to set a starting point. It's not
 	 * coming from opt. */
 	final_rev_info_setup(argc, argv, prefix, &rev);
+
+	walken_commit_walk(&rev);
 
 	printf(_("cmd_walken incoming...\n"));
 	return 0;
