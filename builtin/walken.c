@@ -6,8 +6,11 @@
 
 #include "builtin.h"
 #include "revision.h"
+#include "commit.h"
 #include "config.h"
 #include "parse-options.h"
+#include "pretty.h"
+#include "line-log.h"
 
 
 /*
@@ -82,6 +85,40 @@ static int git_walken_config(const char *var, const char *value, void *cb)
 	return git_default_config(var, value, cb);
 }
 
+/*
+ * walken_commit_walk() is invoked by cmd_walken() after initialization. It
+ * performs the actual commit walk.
+ */
+static void walken_commit_walk(struct rev_info *rev)
+{
+	struct commit *commit;
+	struct strbuf prettybuf = STRBUF_INIT;
+
+	/*
+	 * prepare_revision_walk() gets the final steps ready for a revision
+	 * walk. We check the return value for errors.
+	 */
+	if (prepare_revision_walk(rev)) {
+		die(_("revision walk setup failed"));
+	}
+
+	/*
+	 * Now we can start the real commit walk. get_revision() grabs the next
+	 * revision based on the contents of rev.
+	 */
+	while ((commit = get_revision(rev))) {
+		strbuf_reset(&prettybuf);
+		pp_commit_easy(CMIT_FMT_ONELINE, commit, &prettybuf);
+		/*
+		 * We expect this part of the output to be machine-parseable -
+		 * one commit message per line - so we send it to stdout.
+		 */
+		puts(prettybuf.buf);
+	}
+
+	strbuf_release(&prettybuf);
+}
+
 int cmd_walken(int argc, const char **argv, const char *prefix)
 {
 	/*
@@ -116,11 +153,16 @@ int cmd_walken(int argc, const char **argv, const char *prefix)
 	 */
 	repo_init_revisions(the_repository, &rev, prefix);
 
+	/* We can set our traversal flags here. */
+	rev.always_show_header = 1;
+
 	/*
 	 * Before we do the walk, we need to set a starting point by giving it
 	 * something to go in `pending` - that happens in here
 	 */
 	final_rev_info_setup(argc, argv, prefix, &rev);
+
+	walken_commit_walk(&rev);
 
 	/*
 	 * This line is "human-readable" and we are writing a plumbing command,
