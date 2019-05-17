@@ -12,6 +12,7 @@
 #include "parse-options.h"
 #include "pretty.h"
 #include "line-log.h"
+#include "grep.h"
 
 static const char * const walken_usage[] = {
 	N_("git walken"),
@@ -25,9 +26,8 @@ static const char * const walken_usage[] = {
  */
 static void init_walken_defaults(void)
 {
-	/* We don't actually need the same components `git log` does; leave this
-	 * empty for now.
-	 */
+	/* Needed by our grep filter. */
+	init_grep_defaults(the_repository);
 }
 
 /*
@@ -50,6 +50,10 @@ static void final_rev_info_setup(int argc, const char **argv, const char *prefix
 	opt.def = "HEAD";
 	opt.revarg_opt = REVARG_COMMITTISH;
 	//setup_revisions(argc, argv, rev, &opt);
+
+	/* Add a grep pattern to the author line in the header. */
+	append_header_grep_pattern(&rev->grep_filter, GREP_HEADER_AUTHOR, "gmail");
+	compile_grep_patterns(&rev->grep_filter);
 
 	/* Let's force oneline format. */
 	get_commit_format("oneline", rev);
@@ -77,7 +81,7 @@ static void final_rev_info_setup(int argc, const char **argv, const char *prefix
  */
 static int git_walken_config(const char *var, const char *value, void *cb)
 {
-	/* For now, let's not bother with anything. */
+	grep_config(var, value, cb);
 	return git_default_config(var, value, cb);
 }
 
