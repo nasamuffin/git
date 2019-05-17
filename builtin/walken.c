@@ -61,6 +61,11 @@ static void final_rev_info_setup(int argc, const char **argv, const char *prefix
 	
 	/* add the HEAD to pending so we can start */
 	add_head_to_pending(rev);
+	
+	/* Let's play with the sort order. */
+	rev->topo_order = 1;
+	rev->sort_order = REV_SORT_BY_COMMIT_DATE;
+	/* rev->sort_order = REV_SORT_BY_AUTHOR_DATE; */
 }
 
 /*
