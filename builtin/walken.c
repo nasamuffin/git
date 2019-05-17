@@ -61,6 +61,13 @@ static void final_rev_info_setup(int argc, const char **argv, const char *prefix
 	/* Let's force oneline format. */
 	get_commit_format("oneline", rev);
 	rev->verbose_header = 1;
+	
+	/* Let's play with the sort order. */
+	rev->topo_order = 1;
+
+	/* Toggle between these and observe the difference. */
+	rev->sort_order = REV_SORT_BY_COMMIT_DATE;
+	/* rev->sort_order = REV_SORT_BY_AUTHOR_DATE; */
 }
 
 /*
