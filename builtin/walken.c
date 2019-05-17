@@ -11,6 +11,7 @@
 #include "parse-options.h"
 #include "pretty.h"
 #include "line-log.h"
+#include "grep.h"
 
 
 /*
@@ -20,10 +21,8 @@
  */
 static void init_walken_defaults(void)
 {
-	/*
-	 * We don't use any other components or have settings to initialize, so
-	 * leave this empty.
-	 */
+	/* Needed by our grep filter. */
+	init_grep_defaults(the_repository);
 }
 
 /*
@@ -55,6 +54,10 @@ static void final_rev_info_setup(int argc, const char **argv, const char *prefix
 	/* add the HEAD to pending so we can start */
 	add_head_to_pending(rev);
 
+	/* Apply a 'grep' pattern to the 'author' header. */
+	append_header_grep_pattern(&rev->grep_filter, GREP_HEADER_AUTHOR, "gmail");
+	compile_grep_patterns(&rev->grep_filter);
+
 	/* Let's force oneline format. */
 	get_commit_format("oneline", rev);
 	rev->verbose_header = 1;
@@ -78,10 +81,7 @@ static void final_rev_info_setup(int argc, const char **argv, const char *prefix
  */
 static int git_walken_config(const char *var, const char *value, void *cb)
 {
-	/*
-	 * For now, we don't have any custom configuration, so fall back on the
-	 * default config.
-	 */
+	grep_config(var, value, cb);
 	return git_default_config(var, value, cb);
 }
 
