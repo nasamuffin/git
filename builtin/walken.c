@@ -61,6 +61,9 @@ static void final_rev_info_setup(int argc, const char **argv, const char *prefix
 	/* Let's force oneline format. */
 	get_commit_format("oneline", rev);
 	rev->verbose_header = 1;
+
+	/* Reverse the order */
+	rev->reverse = 1;
 	
 	/* Let's play with the sort order. */
 	rev->topo_order = 1;
