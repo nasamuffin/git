@@ -61,6 +61,9 @@ static void final_rev_info_setup(int argc, const char **argv, const char *prefix
 	
 	/* add the HEAD to pending so we can start */
 	add_head_to_pending(rev);
+
+	/* Reverse the order */
+	rev->reverse = 1;
 	
 	/* Let's play with the sort order. */
 	rev->topo_order = 1;
