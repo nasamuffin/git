@@ -13,6 +13,7 @@
 #include "pretty.h"
 #include "line-log.h"
 #include "list-objects.h"
+#include "list-objects-filter-options.h"
 #include "grep.h"
 
 static const char * const walken_usage[] = {
@@ -154,7 +155,22 @@ static int walken_object_walk(struct rev_info *rev)
 	blob_count = 0;
 	tree_count = 0;
 
-	traverse_commit_list(rev, walken_show_commit, walken_show_object, NULL);
+	if (1) {
+		/* Unfiltered: */
+		printf(_("Unfiltered object walk.\n"));
+		traverse_commit_list(rev, walken_show_commit,
+				walken_show_object, NULL);
+	} else {
+		printf(_("Filtered object walk with filterspec 'tree:1'.\n"));
+		/*
+		 * We can parse a tree depth of 1 to demonstrate the kind of
+		 * filtering that could occur eg during shallow cloning.
+		 */
+		parse_list_objects_filter(&filter_options, "tree:1");
+
+		traverse_commit_list_filtered(&filter_options, rev,
+			walken_show_commit, walken_show_object, NULL, &omitted);
+	}
 
 	printf(_("Object walk completed. Found %d commits, %d blobs, %d tags, "
 	       "and %d trees.\n"), commit_count, blob_count, tag_count,
