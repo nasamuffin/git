@@ -11,8 +11,14 @@
 #include "parse-options.h"
 #include "pretty.h"
 #include "line-log.h"
+#include "list-objects.h"
 #include "grep.h"
 
+
+static int commit_count;
+static int tag_count;
+static int blob_count;
+static int tree_count;
 
 /*
  * Within init_walken_defaults() we can call into other useful defaults to set
@@ -95,6 +101,74 @@ static int git_walken_config(const char *var, const char *value, void *cb)
 	return git_default_config(var, value, cb);
 }
 
+static void walken_show_commit(struct commit *cmt, void *buf)
+{
+	commit_count++;
+}
+
+static void walken_show_object(struct object *obj, const char *str, void *buf)
+{
+	switch (obj->type) {
+	case OBJ_TREE:
+		tree_count++;
+		break;
+	case OBJ_BLOB:
+		blob_count++;
+		break;
+	case OBJ_TAG:
+		tag_count++;
+		break;
+	case OBJ_COMMIT:
+		/*
+		 * BUG() is used to warn developers when they've made a change
+		 * which breaks some relied-upon behavior of Git. In this case,
+		 * we're telling developers that we don't expect commits to be
+		 * routed as objects during an object walk. BUG() messages
+		 * should not be localized.
+		 */
+		BUG("unexpected commit object in walken_show_object\n");
+	default:
+		/*
+		 * This statement will only be hit if a new object type is added
+		 * to Git; we BUG() to tell developers that the new object type
+		 * needs to be handled and counted here.
+		 */
+		BUG("unexpected object type %s in walken_show_object\n"),
+				type_name(obj->type);
+	}
+}
+
+/*
+ * walken_object_walk() is invoked by cmd_walken() after initialization. It does
+ * a walk of all object types.
+ */
+static void walken_object_walk(struct rev_info *rev)
+{
+	rev->tree_objects = 1;
+	rev->blob_objects = 1;
+	rev->tag_objects = 1;
+	rev->tree_blobs_in_commit_order = 1;
+	rev->exclude_promisor_objects = 1;
+
+	if (prepare_revision_walk(rev))
+		die(_("revision walk setup failed"));
+
+	commit_count = 0;
+	tag_count = 0;
+	blob_count = 0;
+	tree_count = 0;
+
+	traverse_commit_list(rev, walken_show_commit, walken_show_object, NULL);
+
+	/*
+	 * This print statement is designed to be script-parseable. Script
+	 * authors will rely on the output not to change, so we will not
+	 * localize this string. It will go to stdout directly.
+	 */
+	printf("commits %d\n blobs %d\n tags %d\n trees %d\n", commit_count,
+	       blob_count, tag_count, tree_count);
+}
+
 /*
  * walken_commit_walk() is invoked by cmd_walken() after initialization. It
  * performs the actual commit walk.
@@ -166,13 +240,18 @@ int cmd_walken(int argc, const char **argv, const char *prefix)
 	/* We can set our traversal flags here. */
 	rev.always_show_header = 1;
 
-	/*
-	 * Before we do the walk, we need to set a starting point by giving it
-	 * something to go in `pending` - that happens in here
-	 */
-	final_rev_info_setup(argc, argv, prefix, &rev);
 
-	walken_commit_walk(&rev);
+	if (1) {
+		add_head_to_pending(&rev);
+		walken_object_walk(&rev);
+	} else {
+		/*
+		 * Before we do the walk, we need to set a starting point by giving it
+		 * something to go in `pending` - that happens in here
+		 */
+		final_rev_info_setup(argc, argv, prefix, &rev);
+		walken_commit_walk(&rev);
+	}
 
 	/*
 	 * This line is "human-readable" and we are writing a plumbing command,
