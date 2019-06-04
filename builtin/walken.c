@@ -12,12 +12,18 @@
 #include "parse-options.h"
 #include "pretty.h"
 #include "line-log.h"
+#include "list-objects.h"
 #include "grep.h"
 
 static const char * const walken_usage[] = {
 	N_("git walken"),
 	NULL,
 };
+
+static int commit_count;
+static int tag_count;
+static int blob_count;
+static int tree_count;
 
 /*
  * Within init_walken_defaults() we can call into other useful defaults to set
@@ -93,6 +99,70 @@ static int git_walken_config(const char *var, const char *value, void *cb)
 	return git_default_config(var, value, cb);
 }
 
+static void walken_show_commit(struct commit *cmt, void *buf)
+{
+	commit_count++;
+}
+
+static void walken_show_object(struct object *obj, const char *str, void *buf)
+{
+	switch (obj->type) {
+	case OBJ_TREE:
+		tree_count++;
+		break;
+	case OBJ_BLOB:
+		blob_count++;
+		break;
+	case OBJ_TAG:
+		tag_count++;
+		break;
+	case OBJ_COMMIT:
+		printf(_("Unexpectedly encountered a commit in "
+			 "walken_show_object!\n"));
+		commit_count++;
+		break;
+	default:
+		printf(_("Unexpected object type %s!\n"),
+		       type_name(obj->type));
+		break;
+	}
+}
+
+/*
+ * walken_object_walk() is invoked by cmd_walken() after initialization. It does
+ * a walk of all object types.
+ */
+static int walken_object_walk(struct rev_info *rev)
+{
+	struct list_objects_filter_options filter_options = {};
+	struct oidset omitted;
+	oidset_init(&omitted, 0);
+
+	printf("walken_object_walk beginning...\n");
+
+	rev->tree_objects = 1;
+	rev->blob_objects = 1;
+	rev->tag_objects = 1;
+	rev->tree_blobs_in_commit_order = 1;
+	rev->exclude_promisor_objects = 1;
+
+	if (prepare_revision_walk(rev))
+		die(_("revision walk setup failed"));
+
+	commit_count = 0;
+	tag_count = 0;
+	blob_count = 0;
+	tree_count = 0;
+
+	traverse_commit_list(rev, walken_show_commit, walken_show_object, NULL);
+
+	printf(_("Object walk completed. Found %d commits, %d blobs, %d tags, "
+	       "and %d trees.\n"), commit_count, blob_count, tag_count,
+	       tree_count);
+
+	return 0;
+}
+
 /*
  * walken_commit_walk() is invoked by cmd_walken() after initialization. It
  * does the commit walk only.
@@ -151,9 +221,14 @@ int cmd_walken(int argc, const char **argv, const char *prefix)
 
 	/* Before we do the walk, we need to set a starting point. It's not
 	 * coming from opt. */
-	final_rev_info_setup(argc, argv, prefix, &rev);
 
-	walken_commit_walk(&rev);
+	if (1) {
+		add_head_to_pending(&rev);
+		walken_object_walk(&rev);
+	} else {
+		final_rev_info_setup(argc, argv, prefix, &rev);
+		walken_commit_walk(&rev);
+	}
 
 	printf(_("cmd_walken incoming...\n"));
 	return 0;
