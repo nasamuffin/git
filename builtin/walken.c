@@ -12,6 +12,7 @@
 #include "pretty.h"
 #include "line-log.h"
 #include "list-objects.h"
+#include "list-objects-filter-options.h"
 #include "grep.h"
 
 
@@ -144,6 +145,8 @@ static void walken_show_object(struct object *obj, const char *str, void *buf)
  */
 static void walken_object_walk(struct rev_info *rev)
 {
+	struct list_objects_filter_options filter_options = {};
+
 	rev->tree_objects = 1;
 	rev->blob_objects = 1;
 	rev->tag_objects = 1;
@@ -158,7 +161,24 @@ static void walken_object_walk(struct rev_info *rev)
 	blob_count = 0;
 	tree_count = 0;
 
-	traverse_commit_list(rev, walken_show_commit, walken_show_object, NULL);
+	if (0) {
+		/* Unfiltered: */
+		trace_printf(_("Unfiltered object walk.\n"));
+		traverse_commit_list(rev, walken_show_commit,
+				walken_show_object, NULL);
+	} else {
+		trace_printf(_("Filtered object walk with filterspec "
+				"'tree:1'.\n"));
+		/*
+		 * We can parse a tree depth of 1 to demonstrate the kind of
+		 * filtering that could occur during various operations (see
+		 * `git help rev-list` and read the entry on `--filter`).
+		 */
+		parse_list_objects_filter(&filter_options, "tree:1");
+
+		traverse_commit_list_filtered(&filter_options, rev,
+			walken_show_commit, walken_show_object, NULL, NULL);
+	}
 
 	/*
 	 * This print statement is designed to be script-parseable. Script
