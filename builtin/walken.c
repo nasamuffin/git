@@ -146,6 +146,11 @@ static void walken_show_object(struct object *obj, const char *str, void *buf)
 static void walken_object_walk(struct rev_info *rev)
 {
 	struct list_objects_filter_options filter_options = {};
+	struct oidset omitted;
+	struct oidset_iter oit;
+	struct object_id *oid = NULL;
+	int omitted_count = 0;
+	oidset_init(&omitted, 0);
 
 	rev->tree_objects = 1;
 	rev->blob_objects = 1;
@@ -180,13 +185,19 @@ static void walken_object_walk(struct rev_info *rev)
 			walken_show_commit, walken_show_object, NULL, NULL);
 	}
 
+	/* Count the omitted objects. */
+	oidset_iter_init(&omitted, &oit);
+
+	while ((oid = oidset_iter_next(&oit)))
+		omitted_count++;
+
 	/*
 	 * This print statement is designed to be script-parseable. Script
 	 * authors will rely on the output not to change, so we will not
 	 * localize this string. It will go to stdout directly.
 	 */
-	printf("commits %d\n blobs %d\n tags %d\n trees %d\n", commit_count,
-	       blob_count, tag_count, tree_count);
+	printf("commits %d\n blobs %d\n tags %d\n trees %d omitted %d\n",
+	       commit_count, blob_count, tag_count, tree_count, omitted_count);
 }
 
 /*
