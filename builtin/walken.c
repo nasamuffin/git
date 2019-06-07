@@ -102,11 +102,13 @@ static int git_walken_config(const char *var, const char *value, void *cb)
 
 static void walken_show_commit(struct commit *cmt, void *buf)
 {
+	printf(_("commit: %s\n"), oid_to_hex(&cmt->object.oid));
 	commit_count++;
 }
 
 static void walken_show_object(struct object *obj, const char *str, void *buf)
 {
+	printf(_("%s: %s\n"), type_name(obj->type), oid_to_hex(&obj->oid));
 	switch (obj->type) {
 	case OBJ_TREE:
 		tree_count++;
@@ -149,6 +151,7 @@ static int walken_object_walk(struct rev_info *rev)
 	rev->tag_objects = 1;
 	rev->tree_blobs_in_commit_order = 1;
 	rev->exclude_promisor_objects = 1;
+	rev->reverse = 1;
 
 	if (prepare_revision_walk(rev))
 		die(_("revision walk setup failed"));
