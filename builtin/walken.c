@@ -137,6 +137,9 @@ static int walken_object_walk(struct rev_info *rev)
 {
 	struct list_objects_filter_options filter_options = {};
 	struct oidset omitted;
+	struct oidset_iter oit;
+	struct object_id *oid = NULL;
+	int omitted_count = 0;
 	oidset_init(&omitted, 0);
 
 	printf("walken_object_walk beginning...\n");
@@ -172,9 +175,15 @@ static int walken_object_walk(struct rev_info *rev)
 			walken_show_commit, walken_show_object, NULL, &omitted);
 	}
 
+	/* Count the omitted objects. */
+	oidset_iter_init(&omitted, &oit);
+
+	while ((oid = oidset_iter_next(&oit)))
+		omitted_count++;
+
 	printf(_("Object walk completed. Found %d commits, %d blobs, %d tags, "
-	       "and %d trees.\n"), commit_count, blob_count, tag_count,
-	       tree_count);
+	       "and %d trees; %d omitted objects.\n"), commit_count,
+	       blob_count, tag_count, tree_count, omitted_count);
 
 	return 0;
 }
