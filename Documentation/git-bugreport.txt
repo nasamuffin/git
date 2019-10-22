@@ -30,6 +30,7 @@ The following information is captured automatically:
  - Compiler-specific info string
  - The number of loose objects in the repository
  - The number of packs and packed objects in the repository
+ - A list of the contents of .git/objects/info (or equivalent)
 
 This tool is invoked via the typical Git setup process, which means that in some
 cases, it might not be able to launch - for example, if a relevant config file
