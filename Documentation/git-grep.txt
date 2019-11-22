@@ -24,7 +24,8 @@ SYNOPSIS
 	   [-A <post-context>] [-B <pre-context>] [-C <context>]
 	   [-W | --function-context]
 	   [--threads <num>]
-	   [-f <file>] [-e] <pattern>
+	   [--pathspecs-file <file>] [--stdin-pathspecs]
+	   [-f | --patterns-file <file>] [--stdin-patterns] [-e] <pattern>
 	   [--and|--or|--not|(|)|-e <pattern>...]
 	   [--recurse-submodules] [--parent-basename <basename>]
 	   [ [--[no-]exclude-standard] [--cached | --no-index | --untracked] | <tree>...]
@@ -270,7 +271,22 @@ providing this option will cause it to die.
 	See `grep.threads` in 'CONFIGURATION' for more information.
 
 -f <file>::
+--patterns-file <file>::
 	Read patterns from <file>, one per line.
+
+--stdin-patterns::
+	Read patterns from stdin, one per line. Equivalent to `-f -`. Cannot be
+	combined with `--stdin-pathspecs`.
+
+--pathspecs-file <file>::
+	Read pathspecs from <file>, one per line. Pathspecs passed in the
+	argument list will be ignored in this mode.
+
+--stdin-pathspecs::
+	Read pathspecs from stdin, one per line. Pathspecs passed in the
+	argument list will be ignored in this mode. Equivalent to
+	`--pathspecs-file -`.
+
 +
 Passing the pattern via <file> allows for providing a search pattern
 containing a \0.

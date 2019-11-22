@@ -720,15 +720,37 @@ static int context_callback(const struct option *opt, const char *arg,
 	return 0;
 }
 
-static int file_callback(const struct option *opt, const char *arg, int unset)
+static int pathspec_file(struct argv_array *pathspec_argv, const char *arg)
 {
-	struct grep_opt *grep_opt = opt->value;
+	struct strbuf sb = STRBUF_INIT;
+
+	if (!strcmp(arg, "-")) {
+		while (strbuf_getline(&sb, stdin) != EOF)
+			argv_array_push(pathspec_argv, sb.buf);
+	}
+	else {
+		if (!strbuf_read_file(&sb, arg, 0))
+			die_errno(_("cannot open '%s'"), arg);
+		argv_array_split(pathspec_argv, sb.buf);
+	}
+
+	strbuf_release(&sb);
+	return 0;
+}
+
+static int pathspec_file_callback(const struct option *opt,
+				  const char *arg, int unset)
+{
+	BUG_ON_OPT_NEG(unset);
+	return pathspec_file(opt->value, arg);
+}
+
+static int pattern_file(struct grep_opt *grep_opt, const char *arg)
+{
 	int from_stdin;
 	FILE *patterns;
 	int lno = 0;
 	struct strbuf sb = STRBUF_INIT;
-
-	BUG_ON_OPT_NEG(unset);
 
 	from_stdin = !strcmp(arg, "-");
 	patterns = from_stdin ? stdin : fopen(arg, "r");
@@ -746,6 +768,12 @@ static int file_callback(const struct option *opt, const char *arg, int unset)
 		fclose(patterns);
 	strbuf_release(&sb);
 	return 0;
+}
+
+static int pattern_file_callback(const struct option *opt, const char *arg, int unset)
+{
+	BUG_ON_OPT_NEG(unset);
+	return pattern_file(opt->value, arg);
 }
 
 static int not_callback(const struct option *opt, const char *arg, int unset)
@@ -803,12 +831,15 @@ int cmd_grep(int argc, const char **argv, const char *prefix)
 	struct grep_opt opt;
 	struct object_array list = OBJECT_ARRAY_INIT;
 	struct pathspec pathspec;
+	struct argv_array pathspec_argv;
 	struct string_list path_list = STRING_LIST_INIT_NODUP;
 	int i;
 	int dummy;
 	int use_index = 1;
 	int pattern_type_arg = GREP_PATTERN_TYPE_UNSPECIFIED;
 	int allow_revs;
+	int stdin_patterns = 0;
+	int stdin_pathspecs = 0;
 
 	struct option options[] = {
 		OPT_BOOL(0, "cached", &cached,
@@ -896,8 +927,14 @@ int cmd_grep(int argc, const char **argv, const char *prefix)
 		OPT_BOOL('W', "function-context", &opt.funcbody,
 			N_("show the surrounding function")),
 		OPT_GROUP(""),
-		OPT_CALLBACK('f', NULL, &opt, N_("file"),
-			N_("read patterns from file"), file_callback),
+		OPT_CALLBACK('f', "patterns-file", &opt, N_("file"),
+			N_("read patterns from file"), pattern_file_callback),
+		OPT_BOOL(0, "stdin-patterns", &stdin_patterns,
+			 N_("read patterns from stdin")),
+		OPT_CALLBACK(0, "pathspecs-file", &pathspec_argv, N_("file"),
+			N_("read pathspecs from file"), pathspec_file_callback),
+		OPT_BOOL(0, "stdin-pathspecs", &stdin_pathspecs,
+			 N_("read pathspecs from stdin")),
 		{ OPTION_CALLBACK, 'e', NULL, &opt, N_("pattern"),
 			N_("match <pattern>"), PARSE_OPT_NONEG, pattern_callback },
 		{ OPTION_CALLBACK, 0, "and", &opt, NULL,
@@ -948,6 +985,15 @@ int cmd_grep(int argc, const char **argv, const char *prefix)
 			     PARSE_OPT_KEEP_DASHDASH |
 			     PARSE_OPT_STOP_AT_NON_OPTION);
 	grep_commit_pattern_type(pattern_type_arg, &opt);
+
+	if (stdin_patterns && stdin_pathspecs)
+		die(_("cannot use stdin for both patterns and pathspecs"));
+
+	if (stdin_patterns)
+		pattern_file(&opt, "-");
+
+	if (stdin_pathspecs)
+		pathspec_file(&pathspec_argv, "-");
 
 	if (use_index && !startup_info->have_repository) {
 		int fallback = 0;
@@ -1057,7 +1103,8 @@ int cmd_grep(int argc, const char **argv, const char *prefix)
 	parse_pathspec(&pathspec, 0,
 		       PATHSPEC_PREFER_CWD |
 		       (opt.max_depth != -1 ? PATHSPEC_MAXDEPTH_VALID : 0),
-		       prefix, argv + i);
+		       prefix,
+		       (pathspec_argv.argc ? pathspec_argv.argv : argv) + i);
 	pathspec.max_depth = opt.max_depth;
 	pathspec.recursive = 1;
 	pathspec.recurse_submodules = !!recurse_submodules;
