@@ -10,6 +10,50 @@ static void free_hook(struct hook *ptr)
 	free(ptr);
 }
 
+/*
+ * Walks the linked list at 'head' to check if any hook named 'name'
+ * already exists. Returns a pointer to that hook if so, otherwise returns NULL.
+ */
+static struct hook *find_hook_by_name(struct list_head *head,
+					 const char *name)
+{
+	struct list_head *pos = NULL, *tmp = NULL;
+	struct hook *found = NULL;
+
+	list_for_each_safe(pos, tmp, head) {
+		struct hook *it = list_entry(pos, struct hook, list);
+		if (!strcmp(it->name, name)) {
+			list_del(pos);
+			found = it;
+			break;
+		}
+	}
+	return found;
+}
+
+/*
+ * Adds a hook if it's not already in the list, or moves it to the tail of the
+ * list if it was already there. name == NULL indicates it's from the hookdir;
+ * just append it in this case.
+ */
+static void append_or_move_hook(struct list_head *head, const char *name)
+{
+	struct hook *to_add = NULL;
+
+	/* if it's not from hookdir, check if the hook is already in the list */
+	if (name)
+		to_add = find_hook_by_name(head, name);
+
+	if (!to_add) {
+		/* adding a new hook, not moving an old one */
+		to_add = xmalloc(sizeof(*to_add));
+		to_add->name = name;
+		to_add->feed_pipe_cb_data = NULL;
+	}
+
+	list_add_tail(&to_add->list, head);
+}
+
 static void remove_hook(struct list_head *to_remove)
 {
 	struct hook *hook_to_remove = list_entry(to_remove, struct hook, list);
@@ -70,24 +114,72 @@ int hook_exists(const char *name)
 	return exists;
 }
 
+struct hook_config_cb
+{
+	const char *hook_event;
+	struct list_head *list;
+};
+
+/*
+ * Callback for git_config which adds configured hooks to a hook list.  Hooks
+ * can be configured by specifying both hook.<friend-name>.command = <path> and
+ * hook.<friendly-name>.event = <hook-event>.
+ */
+static int hook_config_lookup(const char *key, const char *value, void *cb_data)
+{
+	struct hook_config_cb *data = cb_data;
+	const char *subsection, *parsed_key;
+	size_t subsection_len = 0;
+	struct strbuf subsection_cpy = STRBUF_INIT;
+
+	/*
+	 * Don't bother doing the expensive parse if there's no
+	 * chance that the config matches 'hook.myhook.event = hook_event'.
+	 */
+	if (!value || strcmp(value, data->hook_event))
+		return 0;
+
+	/* Looking for "hook.friendlyname.event = hook_event" */
+	if (parse_config_key(key,
+			    "hook",
+			    &subsection,
+			    &subsection_len,
+			    &parsed_key) ||
+	    strcmp(parsed_key, "event"))
+		return 0;
+
+	/*
+	 * 'subsection' is a pointer to the internals of 'key', which we don't
+	 * own the memory for. Copy it away to the hook list.
+	 */
+	strbuf_add(&subsection_cpy, subsection, subsection_len);
+
+	append_or_move_hook(data->list, strbuf_detach(&subsection_cpy, NULL));
+
+
+	return 0;
+}
+
 struct list_head *list_hooks(const char *hookname)
 {
 	struct list_head *hook_head = xmalloc(sizeof(struct list_head));
+	struct hook_config_cb cb_data = {
+		.hook_event = hookname,
+		.list = hook_head,
+	};
 
 	INIT_LIST_HEAD(hook_head);
 
 	if (!hookname)
 		BUG("null hookname was provided to hook_list()!");
 
-	if (have_git_dir()) {
-		const char *hook_path = find_hook(hookname);
-		if (hook_path) {
-			struct hook *to_add = xmalloc(sizeof(*to_add));
-			to_add->hook_path = hook_path;
-			to_add->feed_pipe_cb_data = NULL;
-			list_add_tail(&to_add->list, hook_head);
-		}
-	}
+	/* Add the hooks from the config, e.g. hook.myhook.event = pre-commit */
+	git_config(hook_config_lookup, &cb_data);
+
+	/* Add the hook from the hookdir. The placeholder makes it easier to
+	 * allocate work in pick_next_hook. */
+	if (find_hook(hookname))
+		append_or_move_hook(hook_head, NULL);
 
 	return hook_head;
 }
@@ -144,15 +236,40 @@ static int pick_next_hook(struct child_process *cp,
 	cp->trace2_hook_name = hook_cb->hook_name;
 	cp->dir = hook_cb->options->dir;
 
+	/*
+	 * to enable oneliners, let config-specified hooks run in shell.
+	 * config-specified hooks have a name.
+	 */
+	cp->use_shell = !!to_run->name;
 
-	if (hook_cb->options->dir) {
-		struct strbuf abs_path = STRBUF_INIT;
-		strbuf_add_absolute_path(&abs_path, to_run->hook_path);
-		strvec_push(&cp->args, abs_path.buf);
-		strbuf_release(&abs_path);
+	/* add command */
+	if (to_run->name) {
+		/* ...from config */
+		struct strbuf cmd_key = STRBUF_INIT;
+		char *command = NULL;
+
+		strbuf_addf(&cmd_key, "hook.%s.command", to_run->name);
+		if (git_config_get_string(cmd_key.buf, &command)) {
+			/* TODO test me! */
+			die(_("'hook.%s.command' must be configured "
+			      "or 'hook.%s.event' must be removed; aborting.\n"),
+			    to_run->name, to_run->name);
+		}
+
+		strvec_push(&cp->args, command);
+		strbuf_release(&cmd_key);
 	} else {
-		strvec_push(&cp->args, to_run->hook_path);
+		/* ...from hookdir. */
+		const char *hook_path = find_hook(hook_cb->hook_name);
+		if (!hook_path)
+			BUG("hookdir hook in hook list but no hookdir hook present in filesystem");
+
+		if (hook_cb->options->dir)
+			hook_path = absolute_path(hook_path);
+
+		strvec_push(&cp->args, hook_path);
 	}
+
 
 	/*
 	 * add passed-in argv, without expanding - let the user get back
@@ -179,12 +296,14 @@ static int notify_start_failure(struct strbuf *out,
 {
 	struct hook *hook = pp_task_cb;
 	struct hook_cb_data *hook_cb = pp_cb;
-	const char *hook_path = hook->hook_path;
 
 	hook_cb->rc |= 1;
 
-	strbuf_addf(out, _("Couldn't start hook '%s'\n"),
-		    hook_path);
+	if (hook->name)
+		strbuf_addf(out, _("Couldn't start hook '%s'\n"),
+		    hook->name);
+	else
+		strbuf_addstr(out, _("Couldn't start hook from hooks directory\n"));
 
 	return 1;
 }
