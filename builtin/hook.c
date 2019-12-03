@@ -51,14 +51,17 @@ static int list(int argc, const char **argv, const char *prefix)
 
 	head = list_hooks(hookname);
 
-	if (list_empty(head))
+	if (list_empty(head)) {
+		clear_hook_list(head);
 		return 1;
+	}
 
 	list_for_each(pos, head) {
 		struct hook *item = list_entry(pos, struct hook, list);
 		item = list_entry(pos, struct hook, list);
 		if (item)
-			printf("%s\n", item->hook_path);
+			printf("%s\n", item->name ? item->name
+						  : _("hook from hookdir"));
 	}
 
 	clear_hook_list(head);
