@@ -549,6 +549,10 @@ test_expect_success 'grep -f, non-existent file' '
 	test_must_fail git grep -f patterns
 '
 
+text_expect_success 'grep --pathspec-from-file, non-existent file' '
+	test_must_fail git grep --pathspec-from-file pathspecs
+'
+
 cat >expected <<EOF
 file:foo mmap bar
 file:foo_mmap bar
@@ -582,8 +586,8 @@ mmap
 vvv
 EOF
 
-test_expect_success 'grep -f, multiple patterns' '
-	git grep -f patterns >actual &&
+test_expect_success 'grep --patterns-from-file, multiple patterns' '
+	git grep --patterns-from-file patterns >actual &&
 	test_cmp expected actual
 '
 
@@ -1123,6 +1127,44 @@ test_expect_success 'grep --no-index descends into repos, but not .git' '
 		git grep -l --no-index magic >actual &&
 		test_cmp expect actual
 	)
+'
+
+test_expect_success 'setup pathspecs-file tests' '
+cat >excluded-file <<EOF &&
+bar
+EOF
+cat >pathspec-file <<EOF &&
+foo
+bar
+baz
+EOF
+cat >unrelated-file <<EOF &&
+xyz
+EOF
+git add excluded-file pathspec-file unrelated-file
+'
+
+cat >pathspecs <<EOF
+pathspec-file
+unrelated-file
+EOF
+
+cat >expected <<EOF
+pathspec-file:bar
+EOF
+
+test_expect_success 'grep --pathspec-from-file with file' '
+	git grep --pathspec-from-file pathspecs "bar" >actual &&
+	test_cmp expected actual
+'
+
+test_expect_success 'grep --pathspec-file with stdin' '
+	git grep --pathspec-from-file - "bar" <pathspecs >actual &&
+	test_cmp expected actual
+'
+
+test_expect_success 'grep with two stdin inputs fails' '
+	test_must_fail git grep --pathspec-from-file - --patterns-from-file - <pathspecs
 '
 
 test_expect_success 'setup double-dash tests' '
