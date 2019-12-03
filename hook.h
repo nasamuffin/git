@@ -28,7 +28,7 @@ int hook_exists(const char *hookname);
 struct hook {
 	struct list_head list;
 	/* The path to the hook */
-	const char *hook_path;
+	const char *command;
 
 	unsigned from_hookdir : 1;
 
