@@ -12,6 +12,51 @@ static void free_hook(struct hook *ptr)
 	free(ptr);
 }
 
+/*
+ * Walks the linked list at 'head' to check if any hook running 'command'
+ * already exists. Returns a pointer to that hook if so, otherwise returns NULL.
+ */
+static struct hook * find_hook_by_command(struct list_head *head, const char *command)
+{
+	struct list_head *pos = NULL, *tmp = NULL;
+	struct hook *found = NULL;
+
+	list_for_each_safe(pos, tmp, head) {
+		struct hook *it = list_entry(pos, struct hook, list);
+		if (!strcmp(it->command, command)) {
+		    list_del(pos);
+		    found = it;
+		    break;
+		}
+	}
+	return found;
+}
+
+/*
+ * Adds a hook if it's not already in the list, or moves it to the tail of the
+ * list if it was already there.
+ * Returns a handle to the hook in case more modification is needed. Do not free
+ * the returned handle.
+ */
+static struct hook * append_or_move_hook(struct list_head *head, const char *command)
+{
+	/* check if the hook is already in the list */
+	struct hook *to_add = find_hook_by_command(head, command);
+
+	if (!to_add) {
+		/* adding a new hook, not moving an old one */
+		to_add = xmalloc(sizeof(*to_add));
+		to_add->command = command;
+		to_add->feed_pipe_cb_data = NULL;
+		/* This gets overwritten in hook_list() for hookdir hooks. */
+		to_add->from_hookdir = 0;
+	}
+
+	list_add_tail(&to_add->list, head);
+
+	return to_add;
+}
+
 static void remove_hook(struct list_head *to_remove)
 {
 	struct hook *hook_to_remove = list_entry(to_remove, struct hook, list);
@@ -116,16 +161,60 @@ struct hook_config_cb
 	struct list_head *list;
 };
 
+/*
+ * Callback for git_config which adds configured hooks to a hook list.
+ * Hooks can be configured by specifying hook.<name>.command, for example,
+ * hook.pre-commit.command = echo "pre-commit hook!"
+ */
+static int hook_config_lookup(const char *key, const char *value, void *cb_data)
+{
+	struct hook_config_cb *data = cb_data;
+	const char *hook_key = data->hook_key->buf;
+	struct list_head *head = data->list;
+
+	if (!strcmp(key, hook_key)) {
+		const char *command = value;
+		struct strbuf hookcmd_name = STRBUF_INIT;
+
+
+		if (!command) {
+			strbuf_release(&hookcmd_name);
+			BUG("git_config_get_value overwrote a string it shouldn't have");
+		}
+
+		/* TODO: implement skipping hooks */
+
+		/* TODO: immplement hook aliases */
+
+		/*
+		 * TODO: implement an option-getting callback, e.g.
+		 *   get configs by pattern hookcmd.$value.*
+		 *   for each key+value, do_callback(key, value, cb_data)
+		 */
+		append_or_move_hook(head, command);
+
+		strbuf_release(&hookcmd_name);
+	}
+
+	return 0;
+}
+
 struct list_head* hook_list(const char* hookname, int allow_unknown)
 {
 	struct list_head *hook_head = xmalloc(sizeof(struct list_head));
 	const char *hook_path;
-
+	struct strbuf hook_key = STRBUF_INIT;
+	struct hook_config_cb cb_data = { &hook_key, hook_head };
 
 	INIT_LIST_HEAD(hook_head);
 
 	if (!hookname)
 		return NULL;
+
+	/* Add the hooks from the config, e.g. hook.pre-commit.command */
+	strbuf_addf(&hook_key, "hook.%s.command", hookname);
+	git_config(hook_config_lookup, &cb_data);
+
 
 	if (allow_unknown)
 		hook_path = find_hook_gently(hookname);
@@ -133,13 +222,8 @@ struct list_head* hook_list(const char* hookname, int allow_unknown)
 		hook_path = find_hook(hookname);
 
 	/* Add the hook from the hookdir */
-	if (hook_path) {
-		struct hook *to_add = xmalloc(sizeof(*to_add));
-		to_add->hook_path = hook_path;
-		to_add->feed_pipe_cb_data = NULL;
-		to_add->from_hookdir = 1;
-		list_add_tail(&to_add->list, hook_head);
-	}
+	if (hook_path)
+		append_or_move_hook(hook_head, hook_path)->from_hookdir = 1;
 
 	return hook_head;
 }
@@ -220,11 +304,14 @@ static int pick_next_hook(struct child_process *cp,
 	cp->trace2_hook_name = hook_cb->hook_name;
 	cp->dir = hook_cb->options->dir;
 
+	/* to enable oneliners, let config-specified hooks run in shell */
+	cp->use_shell = !run_me->from_hookdir;
+
 	/* add command */
 	if (run_me->from_hookdir && hook_cb->options->absolute_path)
-		strvec_push(&cp->args, absolute_path(run_me->hook_path));
+		strvec_push(&cp->args, absolute_path(run_me->command));
 	else
-		strvec_push(&cp->args, run_me->hook_path);
+		strvec_push(&cp->args, run_me->command);
 
 	/*
 	 * add passed-in argv, without expanding - let the user get back
@@ -255,7 +342,7 @@ static int notify_start_failure(struct strbuf *out,
 	hook_cb->rc |= 1;
 
 	strbuf_addf(out, _("Couldn't start hook '%s'\n"),
-		    attempted->hook_path);
+		    attempted->command);
 
 	return 1;
 }
