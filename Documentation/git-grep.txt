@@ -24,7 +24,8 @@ SYNOPSIS
 	   [-A <post-context>] [-B <pre-context>] [-C <context>]
 	   [-W | --function-context]
 	   [--threads <num>]
-	   [-f <file>] [-e] <pattern>
+	   [-f | --patterns-from-file <file>] [-e] <pattern>
+	   [--pathspec-from-file=<file> [--pathspec-file-nul]]
 	   [--and|--or|--not|(|)|-e <pattern>...]
 	   [--recurse-submodules] [--parent-basename <basename>]
 	   [ [--[no-]exclude-standard] [--cached | --no-index | --untracked] | <tree>...]
@@ -270,7 +271,10 @@ providing this option will cause it to die.
 	See `grep.threads` in 'CONFIGURATION' for more information.
 
 -f <file>::
-	Read patterns from <file>, one per line.
+--patterns-from-file <file>::
+	Read patterns from <file>, one per line. If `<file>` is exactly `-` then
+	standard input is used; standard input cannot be used for both
+	--patterns-from-file and --pathspec-from-file.
 +
 Passing the pattern via <file> allows for providing a search pattern
 containing a \0.
@@ -288,6 +292,20 @@ containing \0 and `--ignore-case`.
 In future versions we may learn to support patterns containing \0 for
 more search backends, until then we'll die when the pattern type in
 question doesn't support them.
+
+--pathspec-from-file <file>::
+	Read pathspec from <file> instead of the command line. If `<file>` is
+	exactly `-` then standard input is used; standard input cannot be used
+	for both --patterns-from-file and --pathspec-from-file. Pathspec elements
+	are separated by LF or CR/LF. Pathspec elements can be quoted as
+	explained for the configuration variable `core.quotePath` (see
+	linkgit:git-config[1]). See also `--pathspec-file-nul` and global
+	`--literal-pathspecs`.
+
+--pathspec-file-nul::
+	Only meaningful with `--pathspec-from-file`. Pathspec elements are
+	separated with NUL character and all other characters are taken
+	literally (including newlines and quotes).
 
 -e::
 	The next parameter is the pattern. This option has to be
