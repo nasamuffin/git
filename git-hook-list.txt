@@ -1,0 +1,18 @@
+$ git hook list pre-commit
+--------------------------
+
+Current repository: /home/emily/kernel/
+
+Hooks to run at 'pre-commit':
+
+001 global   `/home/emily/hooks/check-typos`
+002 local    `/home/emily/kernel-hooks/lcov`
+050 system   `/usr/share/git-core/git-secrets`
+999 worktree `git gc`
+
+$ git hook list pre-commit --porcelain
+--------------------------------------
+/home/emily/hooks/check-typos
+/home/emily/kernel-hooks/lcov
+/usr/share/git-core/git-secrets
+git gc

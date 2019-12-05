@@ -1,0 +1,6 @@
+$ git hook -h
+-------------
+
+'git hook list <hookname> [--porcelain]'
+'git hook edit <hookname> [<config file>]'
+'git hook add <config file> <hookname> <order number> <path>'

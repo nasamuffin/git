@@ -1,0 +1,34 @@
+/usr/share/git-core/config (system)
+-----------------------------------
+
+[hook]
+	pre-commit = 050:/usr/share/git-core/git-secrets
+	pre-commit = 990:/usr/share/git-core/git-trace
+	update: 001 =/usr/share/git-core/check-malicious
+
+EOF
+
+/home/emily/.gitconfig (global)
+--------------------------------
+[hook]
+	pre-commit = 001:/home/emily/hooks/check-typos
+	pre-commit = 002:/home/emily/kernel-hooks/lcov
+	pre-commit = 006:/home/emily/gerrit-hooks/change-id
+	pre-commit = ---:/usr/share/git-core/git-secrets
+
+EOF
+
+/home/emily/kernel/.git/config (local)
+--------------------------------------
+[hook]
+	pre-commit = 003:/home/emily/kernel-hooks/lcov
+
+EOF
+
+/home/emily/kernel/.git/config.worktree (worktree)
+--------------------------------------------------
+[hook]
+	pre-commit = ---:/home/emily/gerrit-hooks/change-id
+	pre-commit = 050:git gc
+
+EOF

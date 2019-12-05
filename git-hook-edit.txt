@@ -1,0 +1,62 @@
+$ git hook edit pre-commit
+--------------------------
+
+# Current repository: /home/emily/kernel/
+
+# Hooks to run at 'pre-commit':
+
+001 global   `/home/emily/hooks/check-typos`
+003 local    `/home/emily/kernel-hooks/lcov`
+050 system   `/usr/share/git-core/git-secrets`
+999 worktree `git gc`
+
+# Hooks being skipped at 'pre-commit':
+
+# 002 global `/home/emily/kernel-hooks/lcov` (replaced by local)
+# 006 global `/home/emily/gerrit-hooks/change-id` -> (deleted by worktree)
+
+# These lines can be edited. They will be executed in number order.
+
+# To add a new hook, add it to the list. It will be executed in number order
+# regardless of list position when the editor is closed. It will be added at
+# local scope.
+
+# To delete a hook, remove it from the list; it will be deleted at local scope.
+
+# To reorder a hook, change the number. The new order number will be modified at
+# local scope.
+
+$ git hook edit pre-commit global
+---------------------------------
+
+# Modifying pre-commit hooks in '/home/emily/.git/config'
+
+# Hooks to run at 'pre-commit' by this scope:
+
+001 `/home/emily/hooks/check-typos`
+002 `/home/emily/kernel-hooks/lcov`
+006 `/home/emily/gerrit-hooks/change-id`
+
+# Hooks being removed by this scope:
+
+--- system `/usr/share/git-core/git-secrets`
+
+# Hooks that can be overridden at this scope (uncomment to reorder or delete)
+
+# 990 system `/usr/share/git-core/git-trace`
+
+# These lines can be edited. They will be executed in number order, unless
+# overridden in a more local config file.
+
+# All modifications made in this editor will take place in
+# '/home/emily/.git/config'.
+
+# To add a new hook, add it to the list. It will be executed in number order
+# regardless of list position when the editor is closed.
+
+# To delete a hook, remove it from the list, or add an entry like the following:
+# --- <config file> `/path/to/hook`
+
+# To reorder a hook, change the number.
+
+# To allow a hook from a higher scope to run, delete the line removing it.
