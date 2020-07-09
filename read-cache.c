@@ -1532,9 +1532,9 @@ int refresh_index(struct index_state *istate, unsigned int flags,
 	const char *unmerged_fmt;
 	struct progress *progress = NULL;
 
-	if (flags & REFRESH_PROGRESS && isatty(2))
-		progress = start_delayed_progress(_("Refresh index"),
-						  istate->cache_nr);
+	progress = start_delayed_progress(_("Refresh index"),
+					  istate->cache_nr,
+					  (flags & REFRESH_PROGRESS && isatty(2)));
 
 	trace_performance_enter();
 	modified_fmt   = in_porcelain ? "M\t%s\n" : "%s: needs update\n";

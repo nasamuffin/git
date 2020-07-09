@@ -205,8 +205,8 @@ static int traverse_reachable(void)
 	struct progress *progress = NULL;
 	unsigned int nr = 0;
 	int result = 0;
-	if (show_progress)
-		progress = start_delayed_progress(_("Checking connectivity"), 0);
+	progress = start_delayed_progress(_("Checking connectivity"), 0,
+					  show_progress);
 	while (pending.nr) {
 		result |= traverse_one_object(object_array_pop(&pending));
 		display_progress(progress, ++nr);
@@ -672,8 +672,8 @@ static void fsck_object_dir(const char *path)
 	if (verbose)
 		fprintf_ln(stderr, _("Checking object directory"));
 
-	if (show_progress)
-		progress = start_progress(_("Checking object directories"), 256);
+	progress = start_progress(_("Checking object directories"), 256,
+				  show_progress);
 
 	for_each_loose_file_in_objdir(path, fsck_loose, fsck_cruft, fsck_subdir,
 				      progress);
@@ -836,16 +836,15 @@ int cmd_fsck(int argc, const char **argv, const char *prefix)
 			uint32_t total = 0, count = 0;
 			struct progress *progress = NULL;
 
-			if (show_progress) {
-				for (p = get_all_packs(the_repository); p;
-				     p = p->next) {
-					if (open_pack_index(p))
-						continue;
-					total += p->num_objects;
-				}
-
-				progress = start_progress(_("Checking objects"), total);
+			for (p = get_all_packs(the_repository); p;
+			     p = p->next) {
+				if (open_pack_index(p))
+					continue;
+				total += p->num_objects;
 			}
+
+			progress = start_progress(_("Checking objects"), total,
+						  show_progress);
 			for (p = get_all_packs(the_repository); p;
 			     p = p->next) {
 				/* verify gives error messages itself */

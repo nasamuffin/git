@@ -23,16 +23,18 @@
 int cmd__progress(int argc, const char **argv)
 {
 	int total = 0;
+	int quiet = 0;
 	const char *title;
 	struct strbuf line = STRBUF_INIT;
 	struct progress *progress;
 
 	const char *usage[] = {
-		"test-tool progress [--total=<n>] <progress-title>",
+		"test-tool progress [--total=<n>] [--quiet] <progress-title>",
 		NULL
 	};
 	struct option options[] = {
 		OPT_INTEGER(0, "total", &total, "total number of items"),
+		OPT_BOOL(0, "quiet", &quiet, "suppress stderr"),
 		OPT_END(),
 	};
 
@@ -42,7 +44,7 @@ int cmd__progress(int argc, const char **argv)
 	title = argv[0];
 
 	progress_testing = 1;
-	progress = start_progress(title, total);
+	progress = start_progress(title, total, !quiet);
 	while (strbuf_getline(&line, stdin) != EOF) {
 		char *end;
 

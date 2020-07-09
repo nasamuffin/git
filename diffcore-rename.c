@@ -587,11 +587,10 @@ void diffcore_rename(struct diff_options *options)
 		break;
 	}
 
-	if (options->show_rename_progress) {
-		progress = start_delayed_progress(
-				_("Performing inexact rename detection"),
-				(uint64_t)rename_dst_nr * (uint64_t)rename_src_nr);
-	}
+	progress = start_delayed_progress(
+			_("Performing inexact rename detection"),
+			(uint64_t)rename_dst_nr * (uint64_t)rename_src_nr,
+			options->show_rename_progress);
 
 	mx = xcalloc(st_mult(NUM_CANDIDATE_PER_DST, num_create), sizeof(*mx));
 	for (dst_cnt = i = 0; i < rename_dst_nr; i++) {

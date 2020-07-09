@@ -1012,8 +1012,8 @@ static void write_pack_file(void)
 	time_t last_mtime = 0;
 	struct object_entry **write_order;
 
-	if (progress > pack_to_stdout)
-		progress_state = start_progress(_("Writing objects"), nr_result);
+	progress_state = start_progress(_("Writing objects"), nr_result,
+					(progress > pack_to_stdout));
 	ALLOC_ARRAY(written_list, to_pack.nr_objects);
 	write_order = compute_write_order();
 
@@ -2050,9 +2050,9 @@ static void get_object_details(void)
 	uint32_t i;
 	struct object_entry **sorted_by_offset;
 
-	if (progress)
-		progress_state = start_progress(_("Counting objects"),
-						to_pack.nr_objects);
+	progress_state = start_progress(_("Counting objects"),
+					to_pack.nr_objects,
+					progress);
 
 	sorted_by_offset = xcalloc(to_pack.nr_objects, sizeof(struct object_entry *));
 	for (i = 0; i < to_pack.nr_objects; i++)
@@ -2847,9 +2847,8 @@ static void prepare_pack(int window, int depth)
 	if (nr_deltas && n > 1) {
 		unsigned nr_done = 0;
 
-		if (progress)
-			progress_state = start_progress(_("Compressing objects"),
-							nr_deltas);
+		progress_state = start_progress(_("Compressing objects"),
+						nr_deltas, progress);
 		QSORT(delta_list, n, type_size_sort);
 		ll_find_deltas(delta_list, n, window+1, depth, &nr_done);
 		stop_progress(&progress_state);
@@ -3699,8 +3698,7 @@ int cmd_pack_objects(int argc, const char **argv, const char *prefix)
 			    the_repository);
 	prepare_packing_data(the_repository, &to_pack);
 
-	if (progress)
-		progress_state = start_progress(_("Enumerating objects"), 0);
+	progress_state = start_progress(_("Enumerating objects"), 0, progress);
 	if (!use_internal_rev_list)
 		read_object_list_from_stdin();
 	else {

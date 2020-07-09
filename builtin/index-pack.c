@@ -221,8 +221,7 @@ static unsigned check_objects(void)
 
 	max = get_max_object_index();
 
-	if (verbose)
-		progress = start_delayed_progress(_("Checking objects"), max);
+	progress = start_delayed_progress(_("Checking objects"), max, verbose);
 
 	for (i = 0; i < max; i++) {
 		foreign_nr += check_object(get_indexed_object(i));
@@ -1116,10 +1115,9 @@ static void parse_pack_objects(unsigned char *hash)
 	struct object_id ref_delta_oid;
 	struct stat st;
 
-	if (verbose)
-		progress = start_progress(
-				from_stdin ? _("Receiving objects") : _("Indexing objects"),
-				nr_objects);
+	progress = start_progress(
+			from_stdin ? _("Receiving objects") : _("Indexing objects"),
+			nr_objects, verbose);
 	for (i = 0; i < nr_objects; i++) {
 		struct object_entry *obj = &objects[i];
 		void *data = unpack_raw_entry(obj, &ofs_delta->offset,
@@ -1194,9 +1192,9 @@ static void resolve_deltas(void)
 	QSORT(ofs_deltas, nr_ofs_deltas, compare_ofs_delta_entry);
 	QSORT(ref_deltas, nr_ref_deltas, compare_ref_delta_entry);
 
-	if (verbose || show_resolving_progress)
-		progress = start_progress(_("Resolving deltas"),
-					  nr_ref_deltas + nr_ofs_deltas);
+	progress = start_progress(_("Resolving deltas"),
+				  nr_ref_deltas + nr_ofs_deltas,
+				  (verbose || show_resolving_progress));
 
 	nr_dispatched = 0;
 	if (nr_threads > 1 || getenv("GIT_FORCE_THREADS")) {

@@ -309,4 +309,31 @@ test_expect_success 'progress generates traces' '
 	grep "\"key\":\"total_bytes\",\"value\":\"409600\"" trace.event
 '
 
+test_expect_success 'progress generates traces even quietly' '
+	cat >in <<-\EOF &&
+	throughput 102400 1000
+	update
+	progress 10
+	throughput 204800 2000
+	update
+	progress 20
+	throughput 307200 3000
+	update
+	progress 30
+	throughput 409600 4000
+	update
+	progress 40
+	EOF
+
+	GIT_TRACE2_EVENT="$(pwd)/trace.event" test-tool progress --total=40 \
+		--quiet "Working hard" <in 2>stderr &&
+
+	# t0212/parse_events.perl intentionally omits regions and data.
+	grep -e "region_enter" -e "\"category\":\"progress\"" trace.event &&
+	grep -e "region_leave" -e "\"category\":\"progress\"" trace.event &&
+	grep "\"key\":\"total_objects\",\"value\":\"40\"" trace.event &&
+	grep "\"key\":\"total_bytes\",\"value\":\"409600\"" trace.event
+'
+
+
 test_done

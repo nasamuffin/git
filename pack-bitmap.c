@@ -1313,7 +1313,7 @@ void test_bitmap_walk(struct rev_info *revs)
 
 	tdata.bitmap_git = bitmap_git;
 	tdata.base = bitmap_new();
-	tdata.prg = start_progress("Verifying bitmap entries", result_popcnt);
+	tdata.prg = start_progress("Verifying bitmap entries", result_popcnt, 1);
 	tdata.seen = 0;
 
 	traverse_commit_list(revs, &test_show_commit, &test_show_object, &tdata);
@@ -1392,8 +1392,7 @@ int rebuild_existing_bitmaps(struct bitmap_index *bitmap_git,
 	rebuild = bitmap_new();
 	i = 0;
 
-	if (show_progress)
-		progress = start_progress("Reusing bitmaps", 0);
+	progress = start_progress("Reusing bitmaps", 0, show_progress);
 
 	kh_foreach_value(bitmap_git->bitmaps, stored, {
 		if (stored->flags & BITMAP_FLAG_REUSE) {

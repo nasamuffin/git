@@ -166,8 +166,8 @@ static int loop(struct walker *walker)
 	struct progress *progress = NULL;
 	uint64_t nr = 0;
 
-	if (walker->get_progress)
-		progress = start_delayed_progress(_("Fetching objects"), 0);
+	progress = start_delayed_progress(_("Fetching objects"), 0,
+					  walker->get_progress);
 
 	while (process_queue) {
 		struct object *obj = process_queue->item;

@@ -41,8 +41,8 @@ static void perform_reachability_traversal(struct rev_info *revs)
 	if (initialized)
 		return;
 
-	if (show_progress)
-		progress = start_delayed_progress(_("Checking connectivity"), 0);
+	progress = start_delayed_progress(_("Checking connectivity"), 0,
+					  show_progress);
 	mark_reachable_objects(revs, 1, expire, progress);
 	stop_progress(&progress);
 	initialized = 1;

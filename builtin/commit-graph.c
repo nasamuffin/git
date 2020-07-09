@@ -240,9 +240,8 @@ static int graph_write(int argc, const char **argv)
 					   strbuf_detach(&buf, NULL));
 	} else if (opts.stdin_commits) {
 		oidset_init(&commits, 0);
-		if (opts.progress)
-			progress = start_delayed_progress(
-				_("Collecting commits from input"), 0);
+		progress = start_delayed_progress(
+			_("Collecting commits from input"), 0, opts.progress);
 
 		while (strbuf_getline(&buf, stdin) != EOF) {
 			if (read_one_commit(&commits, progress, buf.buf)) {

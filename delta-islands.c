@@ -268,8 +268,8 @@ void resolve_tree_islands(struct repository *r,
 	}
 	QSORT(todo, nr, tree_depth_compare);
 
-	if (progress)
-		progress_state = start_progress(_("Propagating island marks"), nr);
+	progress_state = start_progress(_("Propagating island marks"), nr,
+					progress);
 
 	for (i = 0; i < nr; i++) {
 		struct object_entry *ent = todo[i].entry;

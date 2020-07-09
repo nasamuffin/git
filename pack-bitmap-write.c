@@ -259,8 +259,8 @@ void bitmap_writer_build(struct packing_data *to_pack)
 	writer.bitmaps = kh_init_oid_map();
 	writer.to_pack = to_pack;
 
-	if (writer.show_progress)
-		writer.progress = start_progress("Building bitmaps", writer.selected_nr);
+	writer.progress = start_progress("Building bitmaps", writer.selected_nr,
+					 writer.show_progress);
 
 	repo_init_revisions(to_pack->repo, &revs, NULL);
 	revs.tag_objects = 1;
@@ -397,8 +397,8 @@ void bitmap_writer_select_commits(struct commit **indexed_commits,
 
 	QSORT(indexed_commits, indexed_commits_nr, date_compare);
 
-	if (writer.show_progress)
-		writer.progress = start_progress("Selecting bitmap commits", 0);
+	writer.progress = start_progress("Selecting bitmap commits", 0,
+					 writer.show_progress);
 
 	if (indexed_commits_nr < 100) {
 		for (i = 0; i < indexed_commits_nr; ++i)

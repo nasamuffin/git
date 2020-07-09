@@ -338,16 +338,14 @@ static struct progress *get_progress(struct unpack_trees_options *o,
 {
 	unsigned cnt = 0, total = 0;
 
-	if (!o->update || !o->verbose_update)
-		return NULL;
-
 	for (; cnt < index->cache_nr; cnt++) {
 		const struct cache_entry *ce = index->cache[cnt];
 		if (ce->ce_flags & (CE_UPDATE | CE_WT_REMOVE))
 			total++;
 	}
 
-	return start_delayed_progress(_("Updating files"), total);
+	return start_delayed_progress(_("Updating files"), total,
+				      (o->update && o->verbose_update));
 }
 
 static void setup_collided_checkout_detection(struct checkout *state,
@@ -1493,10 +1491,10 @@ static int clear_ce_flags(struct index_state *istate,
 	int rval;
 
 	strbuf_reset(&prefix);
-	if (show_progress)
-		istate->progress = start_delayed_progress(
-					_("Updating index flags"),
-					istate->cache_nr);
+	istate->progress = start_delayed_progress(
+				_("Updating index flags"),
+				istate->cache_nr,
+				show_progress);
 
 	xsnprintf(label, sizeof(label), "clear_ce_flags(0x%08lx,0x%08lx)",
 		  (unsigned long)select_mask, (unsigned long)clear_mask);

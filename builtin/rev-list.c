@@ -620,8 +620,13 @@ int cmd_rev_list(int argc, const char **argv, const char *prefix)
 	if (bisect_list)
 		revs.limited = 1;
 
-	if (show_progress)
-		progress = start_delayed_progress(show_progress, 0);
+	/*
+	 * When progress is not printed to the user, we still want to be able to
+	 * classify the progress during tracing. So, use a placeholder name.
+	 */
+	progress = start_delayed_progress(
+			show_progress ? show_progress : _("Quiet rev-list operation"),
+			0, show_progress != NULL);
 
 	if (use_bitmap_index) {
 		if (!try_bitmap_count(&revs, &filter_options))

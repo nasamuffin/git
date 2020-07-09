@@ -1129,8 +1129,8 @@ parse_done:
 
 	sb.found_guilty_entry = &found_guilty_entry;
 	sb.found_guilty_entry_data = &pi;
-	if (show_progress)
-		pi.progress = start_delayed_progress(_("Blaming lines"), sb.num_lines);
+	pi.progress = start_delayed_progress(_("Blaming lines"), sb.num_lines,
+					     show_progress);
 
 	assign_blame(&sb, opt);
 

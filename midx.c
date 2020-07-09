@@ -836,10 +836,8 @@ static int write_midx_internal(const char *object_dir, struct multi_pack_index *
 	}
 
 	packs.pack_paths_checked = 0;
-	if (flags & MIDX_PROGRESS)
-		packs.progress = start_progress(_("Adding packfiles to multi-pack-index"), 0);
-	else
-		packs.progress = NULL;
+	packs.progress = start_progress(_("Adding packfiles to multi-pack-index"), 0,
+						(flags & MIDX_PROGRESS));
 
 	for_each_file_in_pack_dir(object_dir, add_pack_to_midx, &packs);
 	stop_progress(&packs.progress);
@@ -973,9 +971,8 @@ static int write_midx_internal(const char *object_dir, struct multi_pack_index *
 		written += MIDX_CHUNKLOOKUP_WIDTH;
 	}
 
-	if (flags & MIDX_PROGRESS)
-		progress = start_progress(_("Writing chunks to multi-pack-index"),
-					  num_chunks);
+	progress = start_progress(_("Writing chunks to multi-pack-index"),
+				  num_chunks, (flags & MIDX_PROGRESS));
 	for (i = 0; i < num_chunks; i++) {
 		if (written != chunk_offsets[i])
 			BUG("incorrect chunk offset (%"PRIu64" != %"PRIu64") for chunk id %"PRIx32,
@@ -1108,9 +1105,8 @@ int verify_midx_file(struct repository *r, const char *object_dir, unsigned flag
 	if (!m)
 		return 0;
 
-	if (flags & MIDX_PROGRESS)
-		progress = start_progress(_("Looking for referenced packfiles"),
-					  m->num_packs);
+	progress = start_progress(_("Looking for referenced packfiles"),
+				  m->num_packs, (flags & MIDX_PROGRESS));
 	for (i = 0; i < m->num_packs; i++) {
 		if (prepare_midx_pack(r, m, i))
 			midx_report("failed to load pack in position %d", i);
@@ -1137,9 +1133,9 @@ int verify_midx_file(struct repository *r, const char *object_dir, unsigned flag
 		return verify_midx_error;
 	}
 
-	if (flags & MIDX_PROGRESS)
-		progress = start_sparse_progress(_("Verifying OID order in multi-pack-index"),
-						 m->num_objects - 1);
+	progress = start_sparse_progress(_("Verifying OID order in multi-pack-index"),
+					 m->num_objects - 1,
+					 (flags & MIDX_PROGRESS));
 	for (i = 0; i < m->num_objects - 1; i++) {
 		struct object_id oid1, oid2;
 
@@ -1166,15 +1162,16 @@ int verify_midx_file(struct repository *r, const char *object_dir, unsigned flag
 		pairs[i].pack_int_id = nth_midxed_pack_int_id(m, i);
 	}
 
-	if (flags & MIDX_PROGRESS)
-		progress = start_sparse_progress(_("Sorting objects by packfile"),
-						 m->num_objects);
+	progress = start_sparse_progress(_("Sorting objects by packfile"),
+					 m->num_objects,
+					 (flags & MIDX_PROGRESS));
 	display_progress(progress, 0); /* TODO: Measure QSORT() progress */
 	QSORT(pairs, m->num_objects, compare_pair_pos_vs_id);
 	stop_progress(&progress);
 
-	if (flags & MIDX_PROGRESS)
-		progress = start_sparse_progress(_("Verifying object offsets"), m->num_objects);
+	progress = start_sparse_progress(_("Verifying object offsets"),
+					 m->num_objects,
+					 (flags & MIDX_PROGRESS));
 	for (i = 0; i < m->num_objects; i++) {
 		struct object_id oid;
 		struct pack_entry e;
@@ -1229,9 +1226,8 @@ int expire_midx_packs(struct repository *r, const char *object_dir, unsigned fla
 
 	count = xcalloc(m->num_packs, sizeof(uint32_t));
 
-	if (flags & MIDX_PROGRESS)
-		progress = start_progress(_("Counting referenced objects"),
-					  m->num_objects);
+	progress = start_progress(_("Counting referenced objects"),
+				  m->num_objects, (flags & MIDX_PROGRESS));
 	for (i = 0; i < m->num_objects; i++) {
 		int pack_int_id = nth_midxed_pack_int_id(m, i);
 		count[pack_int_id]++;
@@ -1239,9 +1235,8 @@ int expire_midx_packs(struct repository *r, const char *object_dir, unsigned fla
 	}
 	stop_progress(&progress);
 
-	if (flags & MIDX_PROGRESS)
-		progress = start_progress(_("Finding and deleting unreferenced packfiles"),
-					  m->num_packs);
+	progress = start_progress(_("Finding and deleting unreferenced packfiles"),
+				  m->num_packs, (flags & MIDX_PROGRESS));
 	for (i = 0; i < m->num_packs; i++) {
 		char *pack_name;
 		display_progress(progress, i + 1);

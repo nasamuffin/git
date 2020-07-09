@@ -2045,8 +2045,8 @@ int cmd_format_patch(int argc, const char **argv, const char *prefix)
 	}
 	rev.add_signoff = do_signoff;
 
-	if (show_progress)
-		progress = start_delayed_progress(_("Generating patches"), total);
+	progress = start_delayed_progress(_("Generating patches"), total,
+					  show_progress);
 	while (0 <= --nr) {
 		int shown;
 		display_progress(progress, total - nr);

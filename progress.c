@@ -43,6 +43,7 @@ struct progress {
 	struct strbuf counters_sb;
 	int title_len;
 	int split;
+	int verbose;
 };
 
 static volatile sig_atomic_t progress_update;
@@ -245,12 +246,13 @@ void display_throughput(struct progress *progress, uint64_t total)
 
 void display_progress(struct progress *progress, uint64_t n)
 {
-	if (progress)
+	if (progress && progress->verbose)
 		display(progress, n, NULL);
 }
 
 static struct progress *start_progress_delay(const char *title, uint64_t total,
-					     unsigned delay, unsigned sparse)
+					     unsigned delay, unsigned sparse,
+					     int verbose)
 {
 	struct progress *progress = xmalloc(sizeof(*progress));
 	progress->title = title;
@@ -264,6 +266,7 @@ static struct progress *start_progress_delay(const char *title, uint64_t total,
 	strbuf_init(&progress->counters_sb, 0);
 	progress->title_len = utf8_strwidth(title);
 	progress->split = 0;
+	progress->verbose = verbose;
 	set_progress_signal();
 	trace2_region_enter("progress", title, the_repository);
 	return progress;
@@ -279,14 +282,16 @@ static int get_default_delay(void)
 	return delay_in_secs;
 }
 
-struct progress *start_delayed_progress(const char *title, uint64_t total)
+struct progress *start_delayed_progress(const char *title, uint64_t total,
+					int verbose)
 {
-	return start_progress_delay(title, total, get_default_delay(), 0);
+	return start_progress_delay(title, total, get_default_delay(), 0,
+				    verbose);
 }
 
-struct progress *start_progress(const char *title, uint64_t total)
+struct progress *start_progress(const char *title, uint64_t total, int verbose)
 {
-	return start_progress_delay(title, total, 0, 0);
+	return start_progress_delay(title, total, 0, 0, verbose);
 }
 
 /*
@@ -298,15 +303,17 @@ struct progress *start_progress(const char *title, uint64_t total)
  * When "sparse" is set, stop_progress() will automatically force the done
  * message to show 100%.
  */
-struct progress *start_sparse_progress(const char *title, uint64_t total)
+struct progress *start_sparse_progress(const char *title, uint64_t total,
+				       int verbose)
 {
-	return start_progress_delay(title, total, 0, 1);
+	return start_progress_delay(title, total, 0, 1, verbose);
 }
 
 struct progress *start_delayed_sparse_progress(const char *title,
-					       uint64_t total)
+					       uint64_t total, int verbose)
 {
-	return start_progress_delay(title, total, get_default_delay(), 1);
+	return start_progress_delay(title, total, get_default_delay(), 1,
+				    verbose);
 }
 
 static void finish_if_sparse(struct progress *progress)

@@ -174,7 +174,7 @@ int finish_delayed_checkout(struct checkout *state, int *nr_checkouts)
 
 	dco->state = CE_RETRY;
 	delayed_object_count = dco->paths.nr;
-	progress = start_delayed_progress(_("Filtering content"), delayed_object_count);
+	progress = start_delayed_progress(_("Filtering content"), delayed_object_count, 1);
 	while (dco->filters.nr > 0) {
 		for_each_string_list_item(filter, &dco->filters) {
 			struct string_list available_paths = STRING_LIST_INIT_NODUP;
