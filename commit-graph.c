@@ -1424,8 +1424,7 @@ int write_commit_graph_reachable(struct object_directory *odb,
 				    flags, split_opts);
 
 	oidset_clear(&commits);
-	if (data.progress)
-		stop_progress(&data.progress);
+	stop_progress(&data.progress);
 	return result;
 }
 
