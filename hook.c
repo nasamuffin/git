@@ -3,13 +3,13 @@
 #include "hook.h"
 #include "config.h"
 #include "run-command.h"
+#include "prompt.h"
 
 void free_hook(struct hook *ptr)
 {
-	if (ptr) {
+	if (ptr)
 		strbuf_release(&ptr->command);
-		free(ptr);
-	}
+	free(ptr);
 }
 
 static struct hook * find_hook_by_command(struct list_head *head, const char *command)
@@ -143,6 +143,70 @@ enum hookdir_opt configured_hookdir_opt(void)
 	return HOOKDIR_UNKNOWN;
 }
 
+static int should_include_hookdir(const char *path, enum hookdir_opt cfg)
+{
+	struct strbuf prompt = STRBUF_INIT;
+	/*
+	 * If the path doesn't exist, don't bother adding the empty hook and
+	 * don't bother checking the config or prompting the user.
+	 */
+	if (!path)
+		return 0;
+
+	switch (cfg)
+	{
+	case HOOKDIR_ERROR:
+		fprintf(stderr, _("Skipping legacy hook at '%s'\n"),
+			path);
+		/* FALLTHROUGH */
+	case HOOKDIR_NO:
+		return 0;
+	case HOOKDIR_WARN:
+		fprintf(stderr, _("Running legacy hook at '%s'\n"),
+			path);
+		return 1;
+	case HOOKDIR_INTERACTIVE:
+		do {
+			/*
+			 * TRANSLATORS: Make sure to include [Y] and [n]
+			 * in your translation. Only English input is
+			 * accepted. Default option is "yes".
+			 */
+			fprintf(stderr, _("Run '%s'? [Y/n] "), path);
+			git_read_line_interactively(&prompt);
+			/*
+			 * In case of prompt = '' - that is, user hit enter,
+			 * saying "yes I want the default" - strncasecmp will
+			 * return 0 regardless. So list the default first.
+			 *
+			 * Case insensitively, accept "y", "ye", or "yes" as
+			 * "yes"; accept "n" or "no" as "no".
+			 */
+			if (!strncasecmp(prompt.buf, "yes", prompt.len)) {
+				strbuf_release(&prompt);
+				return 1;
+			} else if (!strncasecmp(prompt.buf, "no", prompt.len)) {
+				strbuf_release(&prompt);
+				return 0;
+			}
+			/* otherwise, we didn't understand the input */
+		} while (prompt.len); /* an empty reply means default (yes) */
+		return 1;
+	/*
+	 * HOOKDIR_UNKNOWN should match the default behavior, but let's
+	 * give a heads up to the user.
+	 */
+	case HOOKDIR_UNKNOWN:
+		fprintf(stderr,
+			_("Unrecognized value for 'hook.runHookDir'. "
+			  "Is there a typo? "));
+		/* FALLTHROUGH */
+	case HOOKDIR_YES:
+	default:
+		return 1;
+	}
+}
+
 struct list_head* hook_list(const char* hookname)
 {
 	struct strbuf hook_key = STRBUF_INIT;
@@ -175,4 +239,71 @@ struct list_head* hook_list(const char* hookname)
 
 	strbuf_release(&hook_key);
 	return hook_head;
+}
+
+void run_hooks_opt_init(struct run_hooks_opt *o)
+{
+	strvec_init(&o->env);
+	strvec_init(&o->args);
+	o->run_hookdir = configured_hookdir_opt();
+}
+
+void run_hooks_opt_clear(struct run_hooks_opt *o)
+{
+	strvec_clear(&o->env);
+	strvec_clear(&o->args);
+}
+
+static void prepare_hook_cp(const char *hookname, struct hook *hook,
+			    struct run_hooks_opt *options,
+			    struct child_process *cp)
+{
+	if (!hook)
+		return;
+
+	cp->no_stdin = 1;
+	cp->env = options->env.v;
+	cp->stdout_to_stderr = 1;
+	cp->trace2_hook_name = hookname;
+
+	/*
+	 * Commands from the config could be oneliners, but we know
+	 * for certain that hookdir commands are not.
+	 */
+	cp->use_shell = !hook->from_hookdir;
+
+	/* add command */
+	strvec_push(&cp->args, hook->command.buf);
+
+	/*
+	 * add passed-in argv, without expanding - let the user get back
+	 * exactly what they put in
+	 */
+	strvec_pushv(&cp->args, options->args.v);
+}
+
+int run_hooks(const char *hookname, struct run_hooks_opt *options)
+{
+	struct list_head *to_run, *pos = NULL, *tmp = NULL;
+	int rc = 0;
+
+	if (!options)
+		BUG("a struct run_hooks_opt must be provided to run_hooks");
+
+	to_run = hook_list(hookname);
+
+	list_for_each_safe(pos, tmp, to_run) {
+		struct child_process hook_proc = CHILD_PROCESS_INIT;
+		struct hook *hook = list_entry(pos, struct hook, list);
+
+		if (hook->from_hookdir &&
+		    !should_include_hookdir(hook->command.buf, options->run_hookdir))
+			continue;
+
+		prepare_hook_cp(hookname, hook, options, &hook_proc);
+
+		rc |= run_command(&hook_proc);
+	}
+
+	return rc;
 }
