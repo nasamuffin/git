@@ -9,11 +9,12 @@ SYNOPSIS
 --------
 [verse]
 'git hook' list <hook-name>
+'git hook' run [(-e|--env)=<var>...] [(-a|--arg)=<arg>...] <hook-name>
 
 DESCRIPTION
 -----------
-You can list configured hooks with this command. Later, you will be able to run,
-add, and modify hooks with this command.
+You can list and run configured hooks with this command. Later, you will be able
+to add and modify hooks with this command.
 
 This command parses the default configuration files for sections `hook` and
 `hookcmd`. `hook` is used to describe the commands which will be run during a
@@ -63,6 +64,32 @@ List the hooks which have been configured for `<hook-name>`. Hooks appear
 in the order they should be run, and print the config scope where the relevant
 `hook.<hook-name>.command` was specified, not the `hookcmd` (if applicable).
 This output is human-readable and the format is subject to change over time.
+
+run [(-e|--env)=<var>...] [(-a|--arg)=<arg>...] `<hook-name>`::
+
+Runs hooks configured for `<hook-name>`, in the same order displayed by `git
+hook list`. Hooks configured this way are run prepended with `sh -c`, so paths
+containing special characters or spaces should be wrapped in single quotes:
+`command = '/my/path with spaces/script.sh' some args`.
+
+OPTIONS
+-------
+--run-hookdir::
+	Overrides the hook.runHookDir config. Must be 'yes', 'warn',
+	'interactive', or 'no'. Specifies how to handle hooks located in the Git
+	hook directory (core.hooksPath).
+
+-a::
+--arg::
+	Only valid for `run`.
++
+Specify arguments to pass to every hook that is run.
+
+-e::
+--env::
+	Only valid for `run`.
++
+Specify environment variables to set for every hook that is run.
 
 CONFIGURATION
 -------------

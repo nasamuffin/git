@@ -115,7 +115,10 @@ test_expect_success 'hook.runHookDir = no is respected by list' '
 
 	git hook list pre-commit >actual &&
 	# the hookdir annotation is translated
-	test_i18ncmp expected actual
+	test_i18ncmp expected actual &&
+
+	git hook run pre-commit 2>actual &&
+	test_must_be_empty actual
 '
 
 test_expect_success 'hook.runHookDir = warn is respected by list' '
@@ -129,6 +132,14 @@ test_expect_success 'hook.runHookDir = warn is respected by list' '
 
 	git hook list pre-commit >actual &&
 	# the hookdir annotation is translated
+	test_i18ncmp expected actual &&
+
+	cat >expected <<-EOF &&
+	Running legacy hook at '\''$(pwd)/.git/hooks/pre-commit'\''
+	"Legacy Hook"
+	EOF
+
+	git hook run pre-commit 2>actual &&
 	test_i18ncmp expected actual
 '
 
@@ -156,7 +167,7 @@ test_expect_success 'git hook list removes skipped inlined hook' '
 	test_cmp expected actual
 '
 
-test_expect_success 'hook.runHookDir = interactive is respected by list' '
+test_expect_success 'hook.runHookDir = interactive is respected by list and run' '
 	setup_hookdir &&
 
 	test_config hook.runHookDir "interactive" &&
@@ -167,7 +178,55 @@ test_expect_success 'hook.runHookDir = interactive is respected by list' '
 
 	git hook list pre-commit >actual &&
 	# the hookdir annotation is translated
-	test_i18ncmp expected actual
+	test_i18ncmp expected actual &&
+
+	test_write_lines n | git hook run pre-commit 2>actual &&
+	! grep "Legacy Hook" actual &&
+
+	test_write_lines y | git hook run pre-commit 2>actual &&
+	grep "Legacy Hook" actual
+'
+
+test_expect_success 'inline hook definitions execute oneliners' '
+	test_config hook.pre-commit.command "echo \"Hello World\"" &&
+
+	echo "Hello World" >expected &&
+
+	# hooks are run with stdout_to_stderr = 1
+	git hook run pre-commit 2>actual &&
+	test_cmp expected actual
+'
+
+test_expect_success 'inline hook definitions resolve paths' '
+	write_script sample-hook.sh <<-EOF &&
+	echo \"Sample Hook\"
+	EOF
+
+	test_when_finished "rm sample-hook.sh" &&
+
+	test_config hook.pre-commit.command "\"$(pwd)/sample-hook.sh\"" &&
+
+	echo \"Sample Hook\" >expected &&
+
+	# hooks are run with stdout_to_stderr = 1
+	git hook run pre-commit 2>actual &&
+	test_cmp expected actual
+'
+
+test_expect_success 'hookdir hook included in git hook run' '
+	setup_hookdir &&
+
+	echo \"Legacy Hook\" >expected &&
+
+	# hooks are run with stdout_to_stderr = 1
+	git hook run pre-commit 2>actual &&
+	test_cmp expected actual
+'
+
+test_expect_success 'out-of-repo runs excluded' '
+	setup_hooks &&
+
+	nongit test_must_fail git hook run pre-commit
 '
 
 test_done
