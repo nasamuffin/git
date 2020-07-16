@@ -2,6 +2,7 @@
 #include "cache.h"
 #include "parse-options.h"
 #include "string-list.h"
+#include "strvec.h"
 #include "trace2.h"
 
 static int boolean = 0;
@@ -15,6 +16,7 @@ static char *string = NULL;
 static char *file = NULL;
 static int ambiguous;
 static struct string_list list = STRING_LIST_INIT_NODUP;
+static struct strvec vector = STRVEC_INIT;
 
 static struct {
 	int called;
@@ -133,6 +135,7 @@ int cmd__parse_options(int argc, const char **argv)
 		OPT_STRING('o', NULL, &string, "str", "get another string"),
 		OPT_NOOP_NOARG(0, "obsolete"),
 		OPT_STRING_LIST(0, "list", &list, "str", "add str to list"),
+		OPT_STRVEC(0, "vector", &vector, "str", "add str to strvec"),
 		OPT_GROUP("Magic arguments"),
 		OPT_ARGUMENT("quux", NULL, "means --quux"),
 		OPT_NUMBER_CALLBACK(&integer, "set integer to NUM",
@@ -182,6 +185,9 @@ int cmd__parse_options(int argc, const char **argv)
 
 	for (i = 0; i < list.nr; i++)
 		show(&expect, &ret, "list: %s", list.items[i].string);
+
+	for (i = 0; i < vector.nr; i++)
+		show(&expect, &ret, "vector: %s", vector.v[i]);
 
 	for (i = 0; i < argc; i++)
 		show(&expect, &ret, "arg %02d: %s", i, argv[i]);

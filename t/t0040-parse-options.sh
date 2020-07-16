@@ -35,6 +35,7 @@ String options
     --st <st>             get another string (pervert ordering)
     -o <str>              get another string
     --list <str>          add str to list
+    --vector <str>        add str to strvec
 
 Magic arguments
     --quux                means --quux
@@ -383,6 +384,32 @@ test_expect_success '--list keeps list of strings' '
 test_expect_success '--no-list resets list' '
 	test-tool parse-options --list=other --list=irrelevant --list=options \
 		--no-list --list=foo --list=bar --list=baz >output &&
+	test_cmp expect output
+'
+
+cat >expect <<\EOF
+boolean: 0
+integer: 0
+magnitude: 0
+timestamp: 0
+string: (not set)
+abbrev: 7
+verbose: -1
+quiet: 0
+dry run: no
+file: (not set)
+vector: foo
+vector: bar
+vector: baz
+EOF
+test_expect_success '--vector keeps list of strings' '
+	test-tool parse-options --vector foo --vector=bar --vector=baz >output &&
+	test_cmp expect output
+'
+
+test_expect_success '--no-vector resets list' '
+	test-tool parse-options --vector=other --vector=irrelevant --vector=options \
+		--no-vector --vector=foo --vector=bar --vector=baz >output &&
 	test_cmp expect output
 '
 
