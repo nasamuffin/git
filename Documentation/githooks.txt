@@ -103,6 +103,8 @@ The default 'pre-commit' hook, when enabled--and with the
 `hooks.allownonascii` config option unset or set to false--prevents
 the use of non-ASCII filenames.
 
+Hooks executed during 'pre-commit' will not be parallelized.
+
 pre-merge-commit
 ~~~~~~~~~~~~~~~~
 
@@ -124,6 +126,8 @@ If the merge cannot be carried out automatically, the conflicts
 need to be resolved and the result committed separately (see
 linkgit:git-merge[1]). At that point, this hook will not be executed,
 but the 'pre-commit' hook will, if it is enabled.
+
+Hooks executed during 'pre-merge-commit' will not be parallelized.
 
 prepare-commit-msg
 ~~~~~~~~~~~~~~~~~~
@@ -150,6 +154,9 @@ be used as replacement for pre-commit hook.
 The sample `prepare-commit-msg` hook that comes with Git removes the
 help message found in the commented portion of the commit template.
 
+Hooks executed during 'prepare-commit-msg' will not be parallelized, because
+hooks are expected to edit the file containing the commit log message.
+
 commit-msg
 ~~~~~~~~~~
 
@@ -166,6 +173,9 @@ file.
 The default 'commit-msg' hook, when enabled, detects duplicate
 `Signed-off-by` trailers, and aborts the commit if one is found.
 
+Hooks executed during 'commit-msg' will not be parallelized, because hooks are
+expected to edit the file containing the proposed commit log message.
+
 post-commit
 ~~~~~~~~~~~
 
@@ -174,6 +184,9 @@ invoked after a commit is made.
 
 This hook is meant primarily for notification, and cannot affect
 the outcome of `git commit`.
+
+Hooks executed during 'post-commit' will run in parallel, unless hook.jobs is
+configured to 1.
 
 pre-rebase
 ~~~~~~~~~~
