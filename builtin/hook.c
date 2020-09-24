@@ -40,10 +40,15 @@ static int list(int argc, const char **argv, const char *prefix)
 
 	list_for_each(pos, head) {
 		struct hook *item = list_entry(pos, struct hook, list);
-		if (item)
+		item = list_entry(pos, struct hook, list);
+		if (item) {
+			/* Don't translate 'hookdir' - it matches the config */
 			printf("%s: %s\n",
-			       config_scope_name(item->origin),
+			       (item->from_hookdir
+				? "hookdir"
+				: config_scope_name(item->origin)),
 			       item->command.buf);
+		}
 	}
 
 	clear_hook_list(head);
@@ -59,6 +64,8 @@ int cmd_hook(int argc, const char **argv, const char *prefix)
 	};
 	if (argc < 2)
 		usage_with_options(builtin_hook_usage, builtin_hook_options);
+
+	git_config(git_default_config, NULL);
 
 	if (!strcmp(argv[1], "list"))
 		return list(argc - 1, argv + 1, prefix);

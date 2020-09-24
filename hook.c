@@ -2,6 +2,7 @@
 
 #include "hook.h"
 #include "config.h"
+#include "run-command.h"
 
 void free_hook(struct hook *ptr)
 {
@@ -35,6 +36,7 @@ static void append_or_move_hook(struct list_head *head, const char *command)
 		to_add = xmalloc(sizeof(*to_add));
 		strbuf_init(&to_add->command, 0);
 		strbuf_addstr(&to_add->command, command);
+		to_add->from_hookdir = 0;
 	}
 
 	/* re-set the scope so we show where an override was specified */
@@ -114,6 +116,21 @@ struct list_head* hook_list(const struct strbuf* hookname)
 	strbuf_addf(&hook_key, "hook.%s.command", hookname->buf);
 
 	git_config(hook_config_lookup, &cb_data);
+
+	if (have_git_dir()) {
+		const char *legacy_hook_path = find_hook(hookname->buf);
+
+		/* Unconditionally add legacy hook, but annotate it. */
+		if (legacy_hook_path) {
+			struct hook *legacy_hook;
+
+			append_or_move_hook(hook_head,
+					    absolute_path(legacy_hook_path));
+			legacy_hook = list_entry(hook_head->prev, struct hook,
+						 list);
+			legacy_hook->from_hookdir = 1;
+		}
+	}
 
 	strbuf_release(&hook_key);
 	return hook_head;
