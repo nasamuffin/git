@@ -54,6 +54,39 @@ $ git hook list "prepare-commit-msg"
 local: /bin/linter --c
 ----
 
+If there is a command you wish to run in most cases but have one or two
+exceptional repos where it should be skipped, you can use specify
+`hookcmd.<name>.skip`, for example:
+
+System config
+----
+  [hook "pre-commit"]
+    command = check-for-secrets
+
+  [hookcmd "check-for-secrets"]
+    command = /bin/secret-checker --aggressive
+----
+
+Local config
+----
+  [hookcmd "check-for-secrets"]
+    skip = true
+  # This works for inlined hook commands, too:
+  [hookcmd "~/typocheck.sh"]
+    skip = true
+----
+
+After these configs are added, the hook list becomes:
+
+----
+$ git hook list "post-commit"
+global: /bin/linter --c
+local: python ~/run-test-suite.py
+
+$ git hook list "pre-commit"
+no commands configured for hook 'pre-commit'
+----
+
 COMMANDS
 --------
 
