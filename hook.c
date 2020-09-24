@@ -18,6 +18,7 @@ static void free_hook(struct hook *ptr)
  */
 static struct hook * find_hook_by_command(struct list_head *head, const char *command)
 {
+	/* check if the hook is already in the list */
 	struct list_head *pos = NULL, *tmp = NULL;
 	struct hook *found = NULL;
 
@@ -40,7 +41,6 @@ static struct hook * find_hook_by_command(struct list_head *head, const char *co
  */
 static struct hook * append_or_move_hook(struct list_head *head, const char *command)
 {
-	/* check if the hook is already in the list */
 	struct hook *to_add = find_hook_by_command(head, command);
 
 	if (!to_add) {
@@ -173,14 +173,15 @@ static int hook_config_lookup(const char *key, const char *value, void *cb_data)
 	if (!strcmp(key, hook_key)) {
 		const char *command = value;
 		struct strbuf hookcmd_name = STRBUF_INIT;
+		int skip = 0;
 
-
-		if (!command) {
-			strbuf_release(&hookcmd_name);
-			BUG("git_config_get_value overwrote a string it shouldn't have");
-		}
-
-		/* TODO: implement skipping hooks */
+		/*
+		 * Check if we're removing that hook instead. Hookcmds are
+		 * removed by name, and inlined hooks are removed by command
+		 * content.
+		 */
+		strbuf_addf(&hookcmd_name, "hookcmd.%s.skip", command);
+		git_config_get_bool(hookcmd_name.buf, &skip);
 
 		/*
 		 * Check if a hookcmd with that name exists. If it doesn't,
@@ -191,12 +192,24 @@ static int hook_config_lookup(const char *key, const char *value, void *cb_data)
 		strbuf_addf(&hookcmd_name, "hookcmd.%s.command", command);
 		git_config_get_value(hookcmd_name.buf, &command);
 
+		if (!command) {
+			strbuf_release(&hookcmd_name);
+			BUG("git_config_get_value overwrote a string it shouldn't have");
+		}
+
 		/*
 		 * TODO: implement an option-getting callback, e.g.
 		 *   get configs by pattern hookcmd.$value.*
 		 *   for each key+value, do_callback(key, value, cb_data)
 		 */
-		append_or_move_hook(head, command);
+
+		if (skip) {
+			struct hook *to_remove = find_hook_by_command(head, command);
+			if (to_remove)
+				remove_hook(&(to_remove->list));
+		} else {
+			append_or_move_hook(head, command);
+		}
 
 		strbuf_release(&hookcmd_name);
 	}

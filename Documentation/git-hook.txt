@@ -57,6 +57,44 @@ and prepare-commit-msg hooks in this order:
   /bin/linter --c
   .git/hooks/prepare-commit-msg (if present)
 
+If there is a command you wish to run in most cases but have one or two
+exceptional repos where it should be skipped, you can specify
+`hookcmd.<name>.skip`, for example:
+
+System config
+----
+  [hook "pre-commit"]
+    command = check-for-secrets
+
+  [hookcmd "check-for-secrets"]
+    command = /bin/secret-checker --aggressive
+----
+
+Local config
+----
+  [hookcmd "check-for-secrets"]
+    skip = true
+  # This works for inlined hook commands, too:
+  [hookcmd "~/typocheck.sh"]
+    skip = true
+----
+
+TODO STOP LYING
+After these configs are added, the hook list becomes:
+
+post-commit:
+  /bin/linter --c
+  python ~/run-test-suite.py
+  .git/hooks/post-commit (if present)
+
+$ git hook list "pre-commit"
+no commands configured for hook 'pre-commit'
+----
+
+COMMANDS
+--------
+>>>>>>> 0a4b9f27b3 (hook: implement hookcmd.<name>.skip)
+
 In general, when instructions suggest adding a script to
 `.git/hooks/<something>`, you can specify it in the config instead by running
 `git config --add hook.<something>.command <path-to-script>` - this way you can
