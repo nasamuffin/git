@@ -11,6 +11,7 @@ struct hook {
 	enum config_scope origin;
 	/* The literal command to run. */
 	struct strbuf command;
+	unsigned from_hookdir : 1;
 };
 
 /*
