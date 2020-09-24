@@ -16,6 +16,7 @@ static int list(int argc, const char **argv, const char *prefix)
 	struct list_head *head, *pos;
 	struct hook *item;
 	struct strbuf hookname = STRBUF_INIT;
+	struct strbuf hookdir_annotation = STRBUF_INIT;
 
 	struct option list_options[] = {
 		OPT_END(),
@@ -42,10 +43,17 @@ static int list(int argc, const char **argv, const char *prefix)
 
 	list_for_each(pos, head) {
 		item = list_entry(pos, struct hook, list);
-		if (item)
-			printf("%s: %s\n",
-			       config_scope_name(item->origin),
-			       item->command.buf);
+		if (item) {
+			/* Don't translate 'hookdir' - it matches the config */
+			printf("%s: %s%s\n",
+			       (item->from_hookdir
+				? "hookdir"
+				: config_scope_name(item->origin)),
+			       item->command.buf,
+			       (item->from_hookdir
+				? hookdir_annotation.buf
+				: ""));
+		}
 	}
 
 	clear_hook_list(head);

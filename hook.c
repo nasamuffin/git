@@ -2,6 +2,7 @@
 
 #include "hook.h"
 #include "config.h"
+#include "run-command.h"
 
 void free_hook(struct hook *ptr)
 {
@@ -34,6 +35,7 @@ static void append_or_move_hook(struct list_head *head, const char *command)
 		to_add = xmalloc(sizeof(struct hook));
 		strbuf_init(&to_add->command, 0);
 		strbuf_addstr(&to_add->command, command);
+		to_add->from_hookdir = 0;
 	}
 
 	/* re-set the scope so we show where an override was specified */
@@ -100,6 +102,7 @@ struct list_head* hook_list(const struct strbuf* hookname)
 	struct strbuf hook_key = STRBUF_INIT;
 	struct list_head *hook_head = xmalloc(sizeof(struct list_head));
 	struct hook_config_cb cb_data = { &hook_key, hook_head };
+	const char *legacy_hook_path = NULL;
 
 	INIT_LIST_HEAD(hook_head);
 
@@ -109,6 +112,18 @@ struct list_head* hook_list(const struct strbuf* hookname)
 	strbuf_addf(&hook_key, "hook.%s.command", hookname->buf);
 
 	git_config(hook_config_lookup, (void*)&cb_data);
+
+	if (have_git_dir())
+		legacy_hook_path = find_hook(hookname->buf);
+
+	/* Unconditionally add legacy hook, but annotate it. */
+	if (legacy_hook_path) {
+		struct hook *legacy_hook;
+
+		append_or_move_hook(hook_head, absolute_path(legacy_hook_path));
+		legacy_hook = list_entry(hook_head->prev, struct hook, list);
+		legacy_hook->from_hookdir = 1;
+	}
 
 	strbuf_release(&hook_key);
 	return hook_head;
