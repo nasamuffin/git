@@ -248,6 +248,25 @@ void run_hooks_opt_init(struct run_hooks_opt *o)
 	o->run_hookdir = configured_hookdir_opt();
 }
 
+int hook_exists(const char *hookname, enum hookdir_opt should_run_hookdir)
+{
+	const char *value = NULL; /* throwaway */
+	struct strbuf hook_key = STRBUF_INIT;
+	int could_run_hookdir;
+
+	if (should_run_hookdir == HOOKDIR_USE_CONFIG)
+		should_run_hookdir = configured_hookdir_opt();
+
+	could_run_hookdir = (should_run_hookdir == HOOKDIR_INTERACTIVE ||
+				should_run_hookdir == HOOKDIR_WARN ||
+				should_run_hookdir == HOOKDIR_YES)
+				&& !!find_hook(hookname);
+
+	strbuf_addf(&hook_key, "hook.%s.command", hookname);
+
+	return (!git_config_get_value(hook_key.buf, &value)) || could_run_hookdir;
+}
+
 void run_hooks_opt_clear(struct run_hooks_opt *o)
 {
 	strvec_clear(&o->env);
