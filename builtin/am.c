@@ -33,6 +33,7 @@
 #include "string-list.h"
 #include "packfile.h"
 #include "repository.h"
+#include "hook.h"
 
 /**
  * Returns the length of the first line of msg.
@@ -444,9 +445,14 @@ static void am_destroy(const struct am_state *state)
 static int run_applypatch_msg_hook(struct am_state *state)
 {
 	int ret;
+	struct run_hooks_opt opt;
+
+	run_hooks_opt_init_sync(&opt);
 
 	assert(state->msg);
-	ret = run_hook_le(NULL, "applypatch-msg", am_path(state, "final-commit"), NULL);
+	strvec_push(&opt.args, am_path(state, "final-commit"));
+	ret = run_hooks("applypatch-msg", &opt);
+	run_hooks_opt_clear(&opt);
 
 	if (!ret) {
 		FREE_AND_NULL(state->msg);
@@ -1606,9 +1612,16 @@ static void do_commit(const struct am_state *state)
 	struct commit_list *parents = NULL;
 	const char *reflog_msg, *author, *committer = NULL;
 	struct strbuf sb = STRBUF_INIT;
+	struct run_hooks_opt hook_opt;
 
-	if (run_hook_le(NULL, "pre-applypatch", NULL))
+	run_hooks_opt_init_async(&hook_opt);
+
+	if (run_hooks("pre-applypatch", &hook_opt)) {
+		run_hooks_opt_clear(&hook_opt);
 		exit(1);
+	}
+
+	run_hooks_opt_clear(&hook_opt);
 
 	if (write_cache_as_tree(&tree, 0, NULL))
 		die(_("git write-tree failed to write a tree"));
@@ -1659,8 +1672,10 @@ static void do_commit(const struct am_state *state)
 		fclose(fp);
 	}
 
-	run_hook_le(NULL, "post-applypatch", NULL);
+	run_hooks_opt_init_async(&hook_opt);
+	run_hooks("post-applypatch", &hook_opt);
 
+	run_hooks_opt_clear(&hook_opt);
 	strbuf_release(&sb);
 }
 
