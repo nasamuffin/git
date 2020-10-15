@@ -206,6 +206,9 @@ two parameters.  The first parameter is the upstream from which
 the series was forked.  The second parameter is the branch being
 rebased, and is not set when rebasing the current branch.
 
+Hooks executed during 'pre-rebase' will run in parallel, unless hook.jobs is
+configured to 1.
+
 post-checkout
 ~~~~~~~~~~~~~
 
