@@ -547,6 +547,7 @@ that switches branches while
 keeping the local changes in the working tree that do not interfere
 with the difference between the branches.
 
+Hooks executed during 'push-to-checkout' will not be parallelized.
 
 pre-auto-gc
 ~~~~~~~~~~~
