@@ -560,6 +560,9 @@ This hook is invoked by `git gc --auto` (see linkgit:git-gc[1]). It
 takes no parameter, and exiting with non-zero status from this script
 causes the `git gc --auto` to abort.
 
+Hooks run during 'pre-auto-gc' will be run in parallel, unless hook.jobs is
+configured to 1.
+
 post-rewrite
 ~~~~~~~~~~~~
 
