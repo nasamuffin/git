@@ -31,6 +31,7 @@
 #include "refs.h"
 #include "remote.h"
 #include "object-store.h"
+#include "hook.h"
 
 #define FAILED_RUN "failed to run %s"
 
@@ -339,6 +340,7 @@ static void add_repack_incremental_option(void)
 
 static int need_to_gc(void)
 {
+	struct run_hooks_opt hook_opt = RUN_HOOKS_OPT_INIT_ASYNC;
 	/*
 	 * Setting gc.auto to 0 or negative can disable the
 	 * automatic gc.
@@ -385,7 +387,7 @@ static int need_to_gc(void)
 	else
 		return 0;
 
-	if (run_hook_le(NULL, "pre-auto-gc", NULL))
+	if (run_hooks("pre-auto-gc", &hook_opt))
 		return 0;
 	return 1;
 }
