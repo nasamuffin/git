@@ -242,6 +242,9 @@ save and restore any form of metadata associated with the working tree
 (e.g.: permissions/ownership, ACLS, etc).  See contrib/hooks/setgitperms.perl
 for an example of how to do this.
 
+Hooks executed during 'post-merge' will run in parallel, unless hook.jobs is
+configured to 1.
+
 pre-push
 ~~~~~~~~
 
