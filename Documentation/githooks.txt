@@ -58,6 +58,8 @@ the message file.
 The default 'applypatch-msg' hook, when enabled, runs the
 'commit-msg' hook, if the latter is enabled.
 
+Hooks run during 'applypatch-msg' will not be parallelized.
+
 pre-applypatch
 ~~~~~~~~~~~~~~
 
@@ -73,6 +75,8 @@ make a commit if it does not pass certain test.
 The default 'pre-applypatch' hook, when enabled, runs the
 'pre-commit' hook, if the latter is enabled.
 
+Hooks run during 'pre-applypatch' will be run in parallel by default.
+
 post-applypatch
 ~~~~~~~~~~~~~~~
 
@@ -81,6 +85,8 @@ and is invoked after the patch is applied and a commit is made.
 
 This hook is meant primarily for notification, and cannot affect
 the outcome of `git am`.
+
+Hooks run during 'post-applypatch' will be run in parallel by default.
 
 pre-commit
 ~~~~~~~~~~
