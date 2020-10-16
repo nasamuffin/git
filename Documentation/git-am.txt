@@ -24,6 +24,64 @@ Splits mail messages in a mailbox into commit log message,
 authorship information and patches, and applies them to the
 current branch.
 
+This command applies patches as commits. Use linkgit:git-apply[1] to apply
+patches to the worktree without creating commits.
+
+EXAMPLE
+-------
+....
+# our sample patch, generated with 'git format-patch'
+$ cat ~/0001-README-add-more-text.patch
+From f9e01d7538c9d58b48500732b4f98f40f6ad845e Mon Sep 17 00:00:00 2001
+From: A U Thor <author@example.com>
+Date: Fri, 16 Oct 2020 13:14:42 -0700
+Subject: [PATCH] README: add more text
+
+Some additional context.
+
+Signed-off-by: A U Thor <author@example.com>
+---
+ README | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/README b/README
+index cd08755..cfdf4e7 100644
+--- a/README
++++ b/README
+@@ -1 +1 @@
+-Hello world!
++Hello world! This is an example.
+--
+2.29.0.rc1.297.gfa9743e501
+
+# use 'git am' to create a new commit with details from the patch
+$ git status
+On branch main
+nothing to commit, working tree clean
+$ git am ~/0001-README-add-more-text.patch
+Applying: README: add more text
+$ git status
+On branch main
+nothing to commit, working tree clean
+$ git log --oneline
+dd6a400 (HEAD -> main) README: add more text
+90b59fb base commit
+
+# use 'git apply' to apply to the worktree without creating a commit.
+$ git status
+On branch main
+nothing to commit, working tree clean
+$ git apply ~/0001-README-add-more-text.patch
+$ git status
+On branch main
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   README
+
+no changes added to commit (use "git add" and/or "git commit -a")
+....
+
 OPTIONS
 -------
 (<mbox>|<Maildir>)...::
