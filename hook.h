@@ -52,6 +52,9 @@ struct run_hooks_opt
 	 * to be overridden if the user can override it at the command line.
 	 */
 	enum hookdir_opt run_hookdir;
+
+	/* Path to file which should be piped to stdin for each hook */
+	const char *path_to_stdin;
 };
 
 void run_hooks_opt_init(struct run_hooks_opt *o);
@@ -68,7 +71,8 @@ int hook_exists(const char *hookname, enum hookdir_opt should_run_hookdir);
 
 /*
  * Runs all hooks associated to the 'hookname' event in order. Each hook will be
- * passed 'env' and 'args'.
+ * passed 'env' and 'args'. The file at 'stdin_path' will be closed and reopened
+ * for each hook that runs.
  */
 int run_hooks(const char *hookname, struct run_hooks_opt *options);
 

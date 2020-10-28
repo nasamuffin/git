@@ -245,6 +245,7 @@ void run_hooks_opt_init(struct run_hooks_opt *o)
 {
 	strvec_init(&o->env);
 	strvec_init(&o->args);
+	o->path_to_stdin = NULL;
 	o->run_hookdir = configured_hookdir_opt();
 }
 
@@ -280,7 +281,12 @@ static void prepare_hook_cp(const char *hookname, struct hook *hook,
 	if (!hook)
 		return;
 
-	cp->no_stdin = 1;
+	/* reopen the file for stdin; run_command closes it. */
+	if (options->path_to_stdin)
+		cp->in = xopen(options->path_to_stdin, O_RDONLY);
+	else
+		cp->no_stdin = 1;
+
 	cp->env = options->env.v;
 	cp->stdout_to_stderr = 1;
 	cp->trace2_hook_name = hookname;
