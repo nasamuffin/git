@@ -9,7 +9,8 @@ SYNOPSIS
 --------
 [verse]
 'git hook' list <hook-name>
-'git hook' run [(-e|--env)=<var>...] [(-a|--arg)=<arg>...] <hook-name>
+'git hook' run [(-e|--env)=<var>...] [(-a|--arg)=<arg>...] [--to-stdin=<path>]
+	<hook-name>
 
 DESCRIPTION
 -----------
@@ -65,7 +66,7 @@ in the order they should be run, and print the config scope where the relevant
 `hook.<hook-name>.command` was specified, not the `hookcmd` (if applicable).
 This output is human-readable and the format is subject to change over time.
 
-run [(-e|--env)=<var>...] [(-a|--arg)=<arg>...] `<hook-name>`::
+run [(-e|--env)=<var>...] [(-a|--arg)=<arg>...] [--to-stdin=<path>] `<hook-name>`::
 
 Runs hooks configured for `<hook-name>`, in the same order displayed by `git
 hook list`. Hooks configured this way are run prepended with `sh -c`, so paths
@@ -90,6 +91,12 @@ Specify arguments to pass to every hook that is run.
 	Only valid for `run`.
 +
 Specify environment variables to set for every hook that is run.
+
+--to-stdin::
+	Only valid for `run`.
++
+Specify a file which will be streamed into stdin for every hook that is run.
+Each hook will receive the entire file from beginning to EOF.
 
 CONFIGURATION
 -------------

@@ -9,7 +9,8 @@
 
 static const char * const builtin_hook_usage[] = {
 	N_("git hook list <hookname>"),
-	N_("git hook run [(-e|--env)=<var>...] [(-a|--arg)=<arg>...] <hookname>"),
+	N_("git hook run [(-e|--env)=<var>...] [(-a|--arg)=<arg>...]"
+	   "[--to-stdin=<path>] <hookname>"),
 	NULL
 };
 
@@ -97,6 +98,8 @@ static int run(int argc, const char **argv, const char *prefix)
 			   N_("environment variables for hook to use")),
 		OPT_STRVEC('a', "arg", &opt.args, N_("args"),
 			   N_("argument to pass to hook")),
+		OPT_STRING(0, "to-stdin", &opt.path_to_stdin, N_("path"),
+			   N_("file to read into hooks' stdin")),
 		OPT_END(),
 	};
 

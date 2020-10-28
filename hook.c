@@ -263,8 +263,13 @@ int run_hooks(const char *hookname, struct run_hooks_opt *options)
 		struct child_process hook_proc = CHILD_PROCESS_INIT;
 		struct hook *hook = list_entry(pos, struct hook, list);
 
+		/* reopen the file for stdin; run_command closes it. */
+		if (options->path_to_stdin)
+			hook_proc.in = xopen(options->path_to_stdin, O_RDONLY);
+		else
+			hook_proc.no_stdin = 1;
+
 		hook_proc.env = options->env.v;
-		hook_proc.no_stdin = 1;
 		hook_proc.stdout_to_stderr = 1;
 		hook_proc.trace2_hook_name = hook->command.buf;
 		hook_proc.use_shell = 1;
