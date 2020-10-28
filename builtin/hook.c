@@ -11,6 +11,8 @@ static const char * const builtin_hook_usage[] = {
 	NULL
 };
 
+static enum hookdir_opt should_run_hookdir;
+
 static int list(int argc, const char **argv, const char *prefix)
 {
 	struct list_head *head, *pos;
@@ -41,6 +43,26 @@ static int list(int argc, const char **argv, const char *prefix)
 		return 0;
 	}
 
+	switch (should_run_hookdir) {
+		case hookdir_no:
+			strbuf_addstr(&hookdir_annotation, _(" (will not run)"));
+			break;
+		case hookdir_interactive:
+			strbuf_addstr(&hookdir_annotation, _(" (will prompt)"));
+			break;
+		case hookdir_warn:
+		case hookdir_unknown:
+			strbuf_addstr(&hookdir_annotation, _(" (will warn)"));
+			break;
+		case hookdir_yes:
+		/*
+		 * The default behavior should agree with
+		 * hook.c:configured_hookdir_opt().
+		 */
+		default:
+			break;
+	}
+
 	list_for_each(pos, head) {
 		item = list_entry(pos, struct hook, list);
 		if (item) {
@@ -64,14 +86,40 @@ static int list(int argc, const char **argv, const char *prefix)
 
 int cmd_hook(int argc, const char **argv, const char *prefix)
 {
+	const char *run_hookdir = NULL;
+
 	struct option builtin_hook_options[] = {
+		OPT_STRING(0, "run-hookdir", &run_hookdir, N_("option"),
+			   N_("what to do with hooks found in the hookdir")),
 		OPT_END(),
 	};
-	if (argc < 2)
+
+	argc = parse_options(argc, argv, prefix, builtin_hook_options,
+			     builtin_hook_usage, 0);
+
+	/* after the parse, we should have "<command> <hookname> <args...>" */
+	if (argc < 1)
 		usage_with_options(builtin_hook_usage, builtin_hook_options);
 
-	if (!strcmp(argv[1], "list"))
-		return list(argc - 1, argv + 1, prefix);
+
+	/* argument > config */
+	if (run_hookdir)
+		if (!strcmp(run_hookdir, "no"))
+			should_run_hookdir = hookdir_no;
+		else if (!strcmp(run_hookdir, "yes"))
+			should_run_hookdir = hookdir_yes;
+		else if (!strcmp(run_hookdir, "warn"))
+			should_run_hookdir = hookdir_warn;
+		else if (!strcmp(run_hookdir, "interactive"))
+			should_run_hookdir = hookdir_interactive;
+		else
+			die(_("'%s' is not a valid option for --run-hookdir "
+			      "(yes, warn, interactive, no)"), run_hookdir);
+	else
+		should_run_hookdir = configured_hookdir_opt();
+
+	if (!strcmp(argv[0], "list"))
+		return list(argc, argv, prefix);
 
 	usage_with_options(builtin_hook_usage, builtin_hook_options);
 }
