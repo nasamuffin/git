@@ -102,6 +102,30 @@ static int hook_config_lookup(const char *key, const char *value, void *cb_data)
 	return 0;
 }
 
+enum hookdir_opt configured_hookdir_opt(void)
+{
+	const char *key;
+	if (git_config_get_value("hook.runhookdir", &key))
+		return HOOKDIR_YES; /* by default, just run it. */
+
+	if (!strcmp(key, "no"))
+		return HOOKDIR_NO;
+
+	if (!strcmp(key, "error"))
+		return HOOKDIR_ERROR;
+
+	if (!strcmp(key, "yes"))
+		return HOOKDIR_YES;
+
+	if (!strcmp(key, "warn"))
+		return HOOKDIR_WARN;
+
+	if (!strcmp(key, "interactive"))
+		return HOOKDIR_INTERACTIVE;
+
+	return HOOKDIR_UNKNOWN;
+}
+
 struct list_head* hook_list(const struct strbuf* hookname)
 {
 	struct strbuf hook_key = STRBUF_INIT;
