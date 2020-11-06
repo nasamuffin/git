@@ -35,6 +35,9 @@ struct hook {
  */
 struct list_head* hook_list(const char *hookname);
 
+/* Provides the number of threads to use for parallel hook execution. */
+int configured_hook_jobs(void);
+
 struct run_hooks_opt
 {
 	/* Environment vars to be set for each hook */
@@ -93,12 +96,6 @@ struct run_hooks_opt
 	int *invoked_hook;
 };
 
-#define RUN_HOOKS_OPT_INIT { \
-	.jobs = 1, \
-	.env = STRVEC_INIT, \
-	.args = STRVEC_INIT, \
-}
-
 /*
  * To specify a 'struct string_list', set 'run_hooks_opt.feed_pipe_ctx' to the
  * string_list and set 'run_hooks_opt.feed_pipe' to 'pipe_from_string_list()'.
@@ -117,6 +114,8 @@ struct hook_cb_data {
 	int *invoked_hook;
 };
 
+void run_hooks_opt_init_sync(struct run_hooks_opt *o);
+void run_hooks_opt_init_async(struct run_hooks_opt *o);
 void run_hooks_opt_clear(struct run_hooks_opt *o);
 
 /*

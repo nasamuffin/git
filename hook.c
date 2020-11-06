@@ -88,6 +88,14 @@ const char *find_hook(const char *name)
 	return path.buf;
 }
 
+int configured_hook_jobs(void)
+{
+	int n = online_cpus();
+	git_config_get_int("hook.jobs", &n);
+
+	return n;
+}
+
 int hook_exists(const char *name)
 {
 	return !!find_hook(name);
@@ -115,6 +123,26 @@ struct list_head* hook_list(const char* hookname)
 	}
 
 	return hook_head;
+}
+
+void run_hooks_opt_init_sync(struct run_hooks_opt *o)
+{
+	strvec_init(&o->env);
+	strvec_init(&o->args);
+	o->path_to_stdin = NULL;
+	o->jobs = 1;
+	o->dir = NULL;
+	o->feed_pipe = NULL;
+	o->feed_pipe_ctx = NULL;
+	o->consume_sideband = NULL;
+	o->invoked_hook = NULL;
+	o->absolute_path = 0;
+}
+
+void run_hooks_opt_init_async(struct run_hooks_opt *o)
+{
+	run_hooks_opt_init_sync(o);
+	o->jobs = configured_hook_jobs();
 }
 
 void run_hooks_opt_clear(struct run_hooks_opt *o)
@@ -238,10 +266,8 @@ int run_found_hooks(const char *hook_name, struct list_head *hooks,
 		.invoked_hook = options->invoked_hook,
 	};
 
+	cb_data.head = hooks;
 	cb_data.run_me = list_first_entry(hooks, struct hook, list);
-
-	if (options->jobs != 1)
-		BUG("we do not handle %d or any other != 1 job number yet", options->jobs);
 
 	run_processes_parallel_tr2(options->jobs,
 				   pick_next_hook,

@@ -21,7 +21,7 @@ static const char * const builtin_hook_run_usage[] = {
 static int run(int argc, const char **argv, const char *prefix)
 {
 	int i;
-	struct run_hooks_opt opt = RUN_HOOKS_OPT_INIT;
+	struct run_hooks_opt opt;
 	int rc = 0;
 	int ignore_missing = 0;
 	const char *hook_name;
@@ -32,8 +32,12 @@ static int run(int argc, const char **argv, const char *prefix)
 			 N_("exit quietly with a zero exit code if the requested hook cannot be found")),
 		OPT_STRING(0, "to-stdin", &opt.path_to_stdin, N_("path"),
 			   N_("file to read into hooks' stdin")),
+		OPT_INTEGER('j', "jobs", &opt.jobs,
+			    N_("run up to <n> hooks simultaneously")),
 		OPT_END(),
 	};
+
+	run_hooks_opt_init_async(&opt);
 
 	argc = parse_options(argc, argv, prefix, run_options,
 			     builtin_hook_run_usage,
