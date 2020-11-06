@@ -136,6 +136,14 @@ enum hookdir_opt configured_hookdir_opt(void)
 	return hookdir_unknown;
 }
 
+int configured_hook_jobs(void)
+{
+	int n = online_cpus();
+	git_config_get_int("hook.jobs", &n);
+
+	return n;
+}
+
 static int should_include_hookdir(const char *path, enum hookdir_opt cfg)
 {
 	struct strbuf prompt = STRBUF_INIT;
@@ -223,6 +231,7 @@ void run_hooks_opt_init(struct run_hooks_opt *o)
 	strvec_init(&o->env);
 	strvec_init(&o->args);
 	o->run_hookdir = configured_hookdir_opt();
+	o->jobs = configured_hook_jobs();
 }
 
 int hook_exists(const char *hookname, enum hookdir_opt should_run_hookdir)
@@ -246,11 +255,102 @@ void run_hooks_opt_clear(struct run_hooks_opt *o)
 	strvec_clear(&o->args);
 }
 
+struct hook_cb_data {
+	int rc;
+	struct list_head *head;
+	struct list_head *run_me;
+	struct run_hooks_opt *options;
+};
+
+static int pick_next_hook(struct child_process *cp,
+			  struct strbuf *out,
+			  void *pp_cb,
+			  void **pp_task_cb)
+{
+	struct hook_cb_data *hook_cb = pp_cb;
+
+	struct hook *hook = list_entry(hook_cb->run_me, struct hook, list);
+
+	if (hook_cb->head == hook_cb->run_me)
+		return 0;
+
+	cp->env = hook_cb->options->env.v;
+	cp->stdout_to_stderr = 1;
+	cp->trace2_hook_name = hook->command.buf;
+
+	/* reopen the file for stdin; run_command closes it. */
+	if (hook_cb->options->path_to_stdin) {
+		cp->no_stdin = 0;
+		cp->in = xopen(hook_cb->options->path_to_stdin, O_RDONLY);
+	} else {
+		cp->no_stdin = 1;
+	}
+
+	/*
+	 * Commands from the config could be oneliners, but we know
+	 * for certain that hookdir commands are not.
+	 */
+	if (hook->from_hookdir)
+		cp->use_shell = 0;
+	else
+		cp->use_shell = 1;
+
+	/* add command */
+	strvec_push(&cp->args, hook->command.buf);
+
+	/*
+	 * add passed-in argv, without expanding - let the user get back
+	 * exactly what they put in
+	 */
+	strvec_pushv(&cp->args, hook_cb->options->args.v);
+
+	/* Provide context for errors if necessary */
+	*pp_task_cb = hook;
+
+	/* Get the next entry ready */
+	hook_cb->run_me = hook_cb->run_me->next;
+
+	return 1;
+}
+
+static int notify_start_failure(struct strbuf *out,
+				void *pp_cb,
+				void *pp_task_cp)
+{
+	struct hook_cb_data *hook_cb = pp_cb;
+	struct hook *attempted = pp_task_cp;
+
+	/* |= rc in cb */
+	hook_cb->rc |= 1;
+
+	strbuf_addf(out, _("Couldn't start '%s', configured in '%s'\n"),
+		    attempted->command.buf,
+		    attempted->from_hookdir ? "hookdir"
+		    	: config_scope_name(attempted->origin));
+
+	/* NEEDSWORK: if halt_on_error is desired, do it here. */
+	return 0;
+}
+
+static int notify_hook_finished(int result,
+				struct strbuf *out,
+				void *pp_cb,
+				void *pp_task_cb)
+{
+	struct hook_cb_data *hook_cb = pp_cb;
+
+	/* |= rc in cb */
+	hook_cb->rc |= result;
+
+	/* NEEDSWORK: if halt_on_error is desired, do it here. */
+	return 0;
+}
+
 int run_hooks(const char *hookname, struct run_hooks_opt *options)
 {
 	struct strbuf hookname_str = STRBUF_INIT;
 	struct list_head *to_run, *pos = NULL, *tmp = NULL;
-	int rc = 0;
+	struct hook_cb_data cb_data = { 0, NULL, NULL, options };
 
 	if (!options)
 		BUG("a struct run_hooks_opt must be provided to run_hooks");
@@ -260,41 +360,23 @@ int run_hooks(const char *hookname, struct run_hooks_opt *options)
 	to_run = hook_list(&hookname_str);
 
 	list_for_each_safe(pos, tmp, to_run) {
-		struct child_process hook_proc = CHILD_PROCESS_INIT;
 		struct hook *hook = list_entry(pos, struct hook, list);
 
-		/* reopen the file for stdin; run_command closes it. */
-		if (options->path_to_stdin)
-			hook_proc.in = xopen(options->path_to_stdin, O_RDONLY);
-		else
-			hook_proc.no_stdin = 1;
-
-		hook_proc.env = options->env.v;
-		hook_proc.stdout_to_stderr = 1;
-		hook_proc.trace2_hook_name = hook->command.buf;
-		hook_proc.use_shell = 1;
-
-		if (hook->from_hookdir) {
-		    if (!should_include_hookdir(hook->command.buf, options->run_hookdir))
-			continue;
-		    /*
-		     * Commands from the config could be oneliners, but we know
-		     * for certain that hookdir commands are not.
-		     */
-		    hook_proc.use_shell = 0;
-		}
-
-		/* add command */
-		strvec_push(&hook_proc.args, hook->command.buf);
-
-		/*
-		 * add passed-in argv, without expanding - let the user get back
-		 * exactly what they put in
-		 */
-		strvec_pushv(&hook_proc.args, options->args.v);
-
-		rc |= run_command(&hook_proc);
+		if (hook->from_hookdir &&
+		    !should_include_hookdir(hook->command.buf, options->run_hookdir))
+			    list_del(pos);
 	}
 
-	return rc;
+	cb_data.head = to_run;
+	cb_data.run_me = to_run->next;
+
+	run_processes_parallel_tr2(options->jobs,
+				   pick_next_hook,
+				   notify_start_failure,
+				   notify_hook_finished,
+				   &cb_data,
+				   "hook",
+				   hookname);
+
+	return cb_data.rc;
 }
