@@ -38,6 +38,9 @@ enum hookdir_opt
  */
 enum hookdir_opt configured_hookdir_opt(void);
 
+/* Provides the number of threads to use for parallel hook execution. */
+int configured_hook_jobs(void);
+
 struct run_hooks_opt
 {
 	/* Environment vars to be set for each hook */
@@ -48,16 +51,31 @@ struct run_hooks_opt
 
 	/*
 	 * How should the hookdir be handled?
-	 * Leave the RUN_HOOKS_OPT_INIT default in most cases; this only needs
+	 * Leave the run_hooks_opt_init_*() default in most cases; this only needs
 	 * to be overridden if the user can override it at the command line.
 	 */
 	enum hookdir_opt run_hookdir;
 
 	/* Path to file which should be piped to stdin for each hook */
 	const char *path_to_stdin;
+
+	/* Number of threads to parallelize across */
+	int jobs;
 };
 
-void run_hooks_opt_init(struct run_hooks_opt *o);
+/*
+ * Callback provided to feed_pipe_fn and consume_sideband_fn.
+ */
+struct hook_cb_data {
+	int rc;
+	const char *hookname;
+	struct list_head *head;
+	struct hook *run_me;
+	struct run_hooks_opt *options;
+};
+
+void run_hooks_opt_init_sync(struct run_hooks_opt *o);
+void run_hooks_opt_init_async(struct run_hooks_opt *o);
 void run_hooks_opt_clear(struct run_hooks_opt *o);
 
 /*

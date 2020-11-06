@@ -9,7 +9,7 @@
 static const char * const builtin_hook_usage[] = {
 	N_("git hook list <hookname>"),
 	N_("git hook run [(-e|--env)=<var>...] [(-a|--arg)=<arg>...]"
-	   "[--to-stdin=<path>] <hookname>"),
+	   "[--to-stdin=<path>] [(-j|--jobs) <count>] <hookname>"),
 	NULL
 };
 
@@ -114,10 +114,12 @@ static int run(int argc, const char **argv, const char *prefix)
 			   N_("argument to pass to hook")),
 		OPT_STRING(0, "to-stdin", &opt.path_to_stdin, N_("path"),
 			   N_("file to read into hooks' stdin")),
+		OPT_INTEGER('j', "jobs", &opt.jobs,
+			    N_("run up to <n> hooks simultaneously")),
 		OPT_END(),
 	};
 
-	run_hooks_opt_init(&opt);
+	run_hooks_opt_init_async(&opt);
 
 	argc = parse_options(argc, argv, prefix, run_options,
 			     builtin_hook_usage, 0);
