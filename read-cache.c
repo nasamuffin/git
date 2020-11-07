@@ -27,7 +27,6 @@
 #include "progress.h"
 #include "sparse-index.h"
 #include "hook.h"
->>>>>>> 9524a9d29d (read-cache: convert post-index-change hook to use config)
 
 /* Mask for the name length in ce_flags in the on-disk index */
 
