@@ -60,6 +60,9 @@ struct run_hooks_opt
 
 	/* Number of threads to parallelize across */
 	int jobs;
+
+	/* Path to initial working directory for subprocess */
+	const char *dir;
 };
 
 #define RUN_HOOKS_OPT_INIT_SYNC  {   		\
@@ -67,6 +70,7 @@ struct run_hooks_opt
 	.args = STRVEC_INIT, 			\
 	.path_to_stdin = NULL,			\
 	.jobs = 1,				\
+	.dir = NULL,				\
 	.run_hookdir = configured_hookdir_opt()	\
 }
 
@@ -75,6 +79,7 @@ struct run_hooks_opt
 	.args = STRVEC_INIT, 			\
 	.path_to_stdin = NULL,			\
 	.jobs = configured_hook_jobs(),		\
+	.dir = NULL,				\
 	.run_hookdir = configured_hookdir_opt()	\
 }
 
