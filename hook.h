@@ -61,6 +61,9 @@ struct run_hooks_opt
 
 	/* Number of threads to parallelize across */
 	int jobs;
+
+	/* Path to initial working directory for subprocess */
+	const char *dir;
 };
 
 /*

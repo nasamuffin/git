@@ -256,6 +256,7 @@ void run_hooks_opt_init_sync(struct run_hooks_opt *o)
 	o->path_to_stdin = NULL;
 	o->run_hookdir = configured_hookdir_opt();
 	o->jobs = 1;
+	o->dir = NULL;
 }
 
 void run_hooks_opt_init_async(struct run_hooks_opt *o)
@@ -311,6 +312,7 @@ static int pick_next_hook(struct child_process *cp,
 	cp->env = hook_cb->options->env.v;
 	cp->stdout_to_stderr = 1;
 	cp->trace2_hook_name = hook_cb->hookname;
+	cp->dir = hook_cb->options->dir;
 
 	/*
 	 * Commands from the config could be oneliners, but we know
