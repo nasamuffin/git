@@ -55,8 +55,12 @@ struct run_hooks_opt
 	 */
 	enum hookdir_opt run_hookdir;
 
+	/* Only one of the options to fill stdin can be set. */
+
 	/* Path to file which should be piped to stdin for each hook */
 	const char *path_to_stdin;
+	/* String whose contents should be piped to stdin for each hook */
+	struct strbuf str_stdin;
 
 	/* Number of threads to parallelize across */
 	int jobs;
@@ -71,6 +75,7 @@ struct run_hooks_opt
 	.path_to_stdin = NULL,			\
 	.jobs = 1,				\
 	.dir = NULL,				\
+	.str_stdin = STRBUF_INIT,		\
 	.run_hookdir = configured_hookdir_opt()	\
 }
 
@@ -80,6 +85,7 @@ struct run_hooks_opt
 	.path_to_stdin = NULL,			\
 	.jobs = configured_hook_jobs(),		\
 	.dir = NULL,				\
+	.str_stdin = STRBUF_INIT,		\
 	.run_hookdir = configured_hookdir_opt()	\
 }
 

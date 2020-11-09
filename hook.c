@@ -4,6 +4,7 @@
 #include "config.h"
 #include "run-command.h"
 #include "prompt.h"
+#include "sigchain.h"
 
 void free_hook(struct hook *ptr)
 {
@@ -253,6 +254,7 @@ void run_hooks_opt_clear(struct run_hooks_opt *o)
 {
 	strvec_clear(&o->env);
 	strvec_clear(&o->args);
+	strbuf_release(&o->str_stdin);
 }
 
 struct hook_cb_data {
@@ -279,10 +281,43 @@ static int pick_next_hook(struct child_process *cp,
 	cp->trace2_hook_name = hook->command.buf;
 	cp->dir = hook_cb->options->dir;
 
+	if (hook_cb->options->path_to_stdin &&
+	    hook_cb->options->str_stdin.len)
+		BUG("path_to_stdin and str_stdin are mutually exclusive");
+
 	/* reopen the file for stdin; run_command closes it. */
 	if (hook_cb->options->path_to_stdin) {
 		cp->no_stdin = 0;
 		cp->in = xopen(hook_cb->options->path_to_stdin, O_RDONLY);
+	} else if (hook_cb->options->str_stdin.len) {
+		int pipe_fd[2];
+
+		sigchain_push(SIGPIPE, SIG_IGN);
+
+		if (pipe(pipe_fd) < 0) {
+			int err = errno;
+			strbuf_addf(out,
+				    _("Error opening pipe for '%s' hook: %d (%s)\n"),
+				    hook->command.buf,
+				    err,
+				    strerror(err));
+			/* let other hooks fail on their own too */
+			hook_cb->rc |= 1;
+			goto next_hook;
+		}
+
+		/* tell cp about the read end */
+		cp->in = pipe_fd[0];
+		cp->no_stdin = 0;
+
+		/* fill up the write end */
+		write_in_full(pipe_fd[1],
+			      hook_cb->options->str_stdin.buf,
+			      hook_cb->options->str_stdin.len);
+
+		close(pipe_fd[1]);
+
+		sigchain_pop(SIGPIPE);
 	} else {
 		cp->no_stdin = 1;
 	}
@@ -308,6 +343,7 @@ static int pick_next_hook(struct child_process *cp,
 	/* Provide context for errors if necessary */
 	*pp_task_cb = hook;
 
+next_hook:
 	/* Get the next entry ready */
 	hook_cb->run_me = hook_cb->run_me->next;
 
