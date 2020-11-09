@@ -585,6 +585,8 @@ The hook always runs after the automatic note copying (see
 "notes.rewrite.<command>" in linkgit:git-config[1]) has happened, and
 thus has access to these notes.
 
+Hooks run during 'post-rewrite' will be run in parallel by default.
+
 The following command-specific comments apply:
 
 rebase::
