@@ -450,23 +450,16 @@ static int run_applypatch_msg_hook(struct am_state *state)
  */
 static int run_post_rewrite_hook(const struct am_state *state)
 {
-	struct child_process cp = CHILD_PROCESS_INIT;
-	const char *hook = find_hook("post-rewrite");
+	struct run_hooks_opt opt;
 	int ret;
+	run_hooks_opt_init_async(&opt);
 
-	if (!hook)
-		return 0;
+	strvec_push(&opt.args, "rebase");
+	opt.path_to_stdin = am_path(state, "rewritten");
 
-	strvec_push(&cp.args, hook);
-	strvec_push(&cp.args, "rebase");
+	ret = run_hooks("post-rewrite", &opt);
 
-	cp.in = xopen(am_path(state, "rewritten"), O_RDONLY);
-	cp.stdout_to_stderr = 1;
-	cp.trace2_hook_name = "post-rewrite";
-
-	ret = run_command(&cp);
-
-	close(cp.in);
+	run_hooks_opt_clear(&opt);
 	return ret;
 }
 
