@@ -271,6 +271,8 @@ If this hook exits with a non-zero status, `git push` will abort without
 pushing anything.  Information about why the push is rejected may be sent
 to the user by writing to standard error.
 
+Hooks executed during 'pre-push' will run in parallel by default.
+
 [[pre-receive]]
 pre-receive
 ~~~~~~~~~~~
