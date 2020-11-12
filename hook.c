@@ -9,6 +9,7 @@ void free_hook(struct hook *ptr)
 {
 	if (ptr) {
 		strbuf_release(&ptr->command);
+		free(ptr->feed_pipe_cb_data);
 		free(ptr);
 	}
 }
@@ -39,6 +40,7 @@ static void append_or_move_hook(struct list_head *head, const char *command)
 		strbuf_init(&to_add->command, 0);
 		strbuf_addstr(&to_add->command, command);
 		to_add->from_hookdir = 0;
+		to_add->feed_pipe_cb_data = NULL;
 	}
 
 	/* re-set the scope so we show where an override was specified */
@@ -252,6 +254,8 @@ void run_hooks_opt_init_sync(struct run_hooks_opt *o)
 	o->run_hookdir = configured_hookdir_opt();
 	o->jobs = 1;
 	o->dir = NULL;
+	o->feed_pipe = NULL;
+	o->feed_pipe_ctx = NULL;
 }
 
 void run_hooks_opt_init_async(struct run_hooks_opt *o)
@@ -285,6 +289,28 @@ void run_hooks_opt_clear(struct run_hooks_opt *o)
 	strvec_clear(&o->args);
 }
 
+int pipe_from_string_list(struct strbuf *pipe, void *pp_cb, void *pp_task_cb)
+{
+	int *item_idx;
+	struct hook *ctx = pp_task_cb;
+	struct string_list *to_pipe = ((struct hook_cb_data*)pp_cb)->options->feed_pipe_ctx;
+
+	/* Bootstrap the state manager if necessary. */
+	if (!ctx->feed_pipe_cb_data) {
+		ctx->feed_pipe_cb_data = xmalloc(sizeof(unsigned int));
+		*(int*)ctx->feed_pipe_cb_data = 0;
+	}
+
+	item_idx = ctx->feed_pipe_cb_data;
+
+	if (*item_idx < to_pipe->nr) {
+		strbuf_addf(pipe, "%s\n", to_pipe->items[*item_idx].string);
+		(*item_idx)++;
+		return 0;
+	}
+	return 1;
+}
+
 static int pick_next_hook(struct child_process *cp,
 			  struct strbuf *out,
 			  void *pp_cb,
@@ -300,6 +326,10 @@ static int pick_next_hook(struct child_process *cp,
 	if (hook_cb->options->path_to_stdin) {
 		cp->no_stdin = 0;
 		cp->in = xopen(hook_cb->options->path_to_stdin, O_RDONLY);
+	} else if (hook_cb->options->feed_pipe) {
+		/* ask for start_command() to make a pipe for us */
+		cp->in = -1;
+		cp->no_stdin = 0;
 	} else {
 		cp->no_stdin = 1;
 	}
@@ -379,6 +409,9 @@ int run_hooks(const char *hookname, struct run_hooks_opt *options)
 	if (!options)
 		BUG("a struct run_hooks_opt must be provided to run_hooks");
 
+	if (options->path_to_stdin && options->feed_pipe)
+		BUG("choose only one method to populate stdin");
+
 	strbuf_addstr(&hookname_str, hookname);
 
 	to_run = hook_list(&hookname_str);
@@ -400,7 +433,7 @@ int run_hooks(const char *hookname, struct run_hooks_opt *options)
 	run_processes_parallel_tr2(options->jobs,
 				   pick_next_hook,
 				   notify_start_failure,
-				   NULL,
+				   options->feed_pipe,
 				   notify_hook_finished,
 				   &cb_data,
 				   "hook",
