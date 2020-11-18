@@ -539,6 +539,9 @@ The exit status of the hook is ignored for any state except for the
 cause the transaction to be aborted. The hook will not be called with
 "aborted" state in that case.
 
+Hooks run during 'reference-transaction' will be run in parallel, unless
+hook.jobs is configured to 1.
+
 push-to-checkout
 ~~~~~~~~~~~~~~~~
 
