@@ -256,6 +256,7 @@ void run_hooks_opt_init_sync(struct run_hooks_opt *o)
 	o->dir = NULL;
 	o->feed_pipe = NULL;
 	o->feed_pipe_ctx = NULL;
+	o->consume_sideband = NULL;
 }
 
 void run_hooks_opt_init_async(struct run_hooks_opt *o)
@@ -434,7 +435,7 @@ int run_hooks(const char *hookname, struct run_hooks_opt *options)
 				   pick_next_hook,
 				   notify_start_failure,
 				   options->feed_pipe,
-				   NULL,
+				   options->consume_sideband,
 				   notify_hook_finished,
 				   &cb_data,
 				   "hook",
