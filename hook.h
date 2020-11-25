@@ -78,6 +78,14 @@ struct run_hooks_opt
 	feed_pipe_fn feed_pipe;
 	void *feed_pipe_ctx;
 
+	/*
+	 * Populate this to capture output and prevent it from being printed to
+	 * stderr. This will be passed directly through to
+	 * run_command:run_parallel_processes(). See t/helper/test-run-command.c
+	 * for an example.
+	 */
+	consume_sideband_fn consume_sideband;
+
 	/* Number of threads to parallelize across */
 	int jobs;
 
