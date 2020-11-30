@@ -368,6 +368,9 @@ The default 'update' hook, when enabled--and with
 `hooks.allowunannotated` config option unset or set to false--prevents
 unannotated tags to be pushed.
 
+Hooks executed during 'update' are run in parallel, unless hook.jobs is
+configured to 1.
+
 [[proc-receive]]
 proc-receive
 ~~~~~~~~~~~~
