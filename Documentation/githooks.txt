@@ -433,6 +433,10 @@ the input.  The exit status of the 'proc-receive' hook only determines
 the success or failure of the group of commands sent to it, unless
 atomic push is in use.
 
+It is forbidden to specify more than one hook for 'proc-receive'. If a
+globally-configured 'proc-receive' must be overridden, use
+'hookcmd.<global-hook>.skip = true' to ignore it.
+
 [[post-receive]]
 post-receive
 ~~~~~~~~~~~~
