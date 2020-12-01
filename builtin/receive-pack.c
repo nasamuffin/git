@@ -1146,11 +1146,40 @@ static int run_proc_receive_hook(struct command *commands,
 	int version = 0;
 	int code;
 
-	argv[0] = find_hook("proc-receive");
-	if (!argv[0]) {
+	struct strbuf hookname = STRBUF_INIT;
+	struct hook *proc_receive = NULL;
+	struct list_head *pos, *hooks;
+
+	strbuf_addstr(&hookname, "proc-receive");
+	hooks = hook_list(&hookname);
+
+	list_for_each(pos, hooks) {
+		if (proc_receive) {
+			rp_error("only one 'proc-receive' hook can be specified");
+			return -1;
+		}
+		proc_receive = list_entry(pos, struct hook, list);
+		/* check if the hookdir hook should be ignored */
+		if (proc_receive->from_hookdir) {
+			switch (configured_hookdir_opt()) {
+			case HOOKDIR_INTERACTIVE:
+			case HOOKDIR_NO:
+				proc_receive = NULL;
+				break;
+			default:
+				break;
+			}
+		}
+
+	}
+
+	if (!proc_receive) {
 		rp_error("cannot find hook 'proc-receive'");
 		return -1;
 	}
+
+
+	argv[0] = proc_receive->command.buf;
 	argv[1] = NULL;
 
 	proc.argv = argv;
