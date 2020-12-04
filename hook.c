@@ -218,6 +218,41 @@ static int should_include_hookdir(const char *path, enum hookdir_opt cfg)
 	}
 }
 
+static const char *find_legacy_hook(const char *name)
+{
+	static struct strbuf path = STRBUF_INIT;
+
+	strbuf_reset(&path);
+	strbuf_git_path(&path, "hooks/%s", name);
+	if (access(path.buf, X_OK) < 0) {
+		int err = errno;
+
+#ifdef STRIP_EXTENSION
+		strbuf_addstr(&path, STRIP_EXTENSION);
+		if (access(path.buf, X_OK) >= 0)
+			return path.buf;
+		if (errno == EACCES)
+			err = errno;
+#endif
+
+		if (err == EACCES && advice_ignored_hook) {
+			static struct string_list advise_given = STRING_LIST_INIT_DUP;
+
+			if (!string_list_lookup(&advise_given, name)) {
+				string_list_insert(&advise_given, name);
+				advise(_("The '%s' hook was ignored because "
+					 "it's not set as executable.\n"
+					 "You can disable this warning with "
+					 "`git config advice.ignoredHook false`."),
+				       path.buf);
+			}
+		}
+		return NULL;
+	}
+	return path.buf;
+}
+
+
 struct list_head* hook_list(const char* hookname)
 {
 	struct strbuf hook_key = STRBUF_INIT;
@@ -234,7 +269,7 @@ struct list_head* hook_list(const char* hookname)
 	git_config(hook_config_lookup, &cb_data);
 
 	if (have_git_dir()) {
-		const char *legacy_hook_path = find_hook(hookname);
+		const char *legacy_hook_path = find_legacy_hook(hookname);
 
 		/* Unconditionally add legacy hook, but annotate it. */
 		if (legacy_hook_path) {
@@ -283,7 +318,7 @@ int hook_exists(const char *hookname, enum hookdir_opt should_run_hookdir)
 	could_run_hookdir = (should_run_hookdir == HOOKDIR_INTERACTIVE ||
 				should_run_hookdir == HOOKDIR_WARN ||
 				should_run_hookdir == HOOKDIR_YES)
-				&& !!find_hook(hookname);
+				&& !!find_legacy_hook(hookname);
 
 	strbuf_addf(&hook_key, "hook.%s.command", hookname);
 
