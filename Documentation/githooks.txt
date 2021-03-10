@@ -7,15 +7,16 @@ githooks - Hooks used by Git
 
 SYNOPSIS
 --------
+'git hook'
 $GIT_DIR/hooks/* (or \`git config core.hooksPath`/*)
 
 
 DESCRIPTION
 -----------
 
-Hooks are programs you can place in a hooks directory to trigger
-actions at certain points in git's execution. Hooks that don't have
-the executable bit set are ignored.
+Hooks are programs you can specify in your config (see linkgit:git-hook[1]) or
+place in a hooks directory to trigger actions at certain points in git's
+execution. Hooks that don't have the executable bit set are ignored.
 
 By default the hooks directory is `$GIT_DIR/hooks`, but that can be
 changed via the `core.hooksPath` configuration variable (see

@@ -17,6 +17,13 @@ DESCRIPTION
 You can list and run configured hooks with this command. Later, you will be able
 to add and modify hooks with this command.
 
+In general, when instructions suggest adding a script to
+`.git/hooks/<something>`, you can specify it in the config instead by running
+`git config --add hook.<something>.command <path-to-script>` - this way you can
+share the script between multiple repos. That is, `cp ~/my-script.sh
+~/project/.git/hooks/pre-commit` would become `git config --add
+hook.pre-commit.command ~/my-script.sh`.
+
 This command parses the default configuration files for sections `hook` and
 `hookcmd`. `hook` is used to describe the commands which will be run during a
 particular hook event; commands are run in the order Git encounters them during
@@ -140,6 +147,11 @@ the value of the `hook.jobs` config. If the config is not specified, use the
 number of CPUs on the current system. Some hooks may be ineligible for
 parallelization: for example, 'commit-msg' intends hooks modify the commit
 message body and cannot be parallelized.
+
+HOOKS
+-----
+For a list of hooks which can be configured and how they work, see
+linkgit:githooks[5].
 
 CONFIGURATION
 -------------
