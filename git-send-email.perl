@@ -1958,26 +1958,12 @@ sub unique_email_list {
 sub validate_patch {
 	my ($fn, $xfer_encoding) = @_;
 
-	if ($repo) {
-		my $validate_hook = catfile($repo->hooks_path(),
-					    'sendemail-validate');
-		my $hook_error;
-		if (-x $validate_hook) {
-			my $target = abs_path($fn);
-			# The hook needs a correct cwd and GIT_DIR.
-			my $cwd_save = cwd();
-			chdir($repo->wc_path() or $repo->repo_path())
-				or die("chdir: $!");
-			local $ENV{"GIT_DIR"} = $repo->repo_path();
-			$hook_error = system_or_msg([$validate_hook, $target]);
-			chdir($cwd_save) or die("chdir: $!");
-		}
-		if ($hook_error) {
-			die sprintf(__("fatal: %s: rejected by sendemail-validate hook\n" .
-				       "%s\n" .
-				       "warning: no patches were sent\n"), $fn, $hook_error);
-		}
-	}
+	my $target = abs_path($fn);
+
+	system_or_die(["git", "hook", "run", "sendemail-validate", "-j1", "-a", $target],
+		sprintf(__("fatal: %s: rejected by sendemail-validate hook\n" .
+			   "warning: no patches were sent\n"),
+		        $fn));
 
 	# Any long lines will be automatically fixed if we use a suitable transfer
 	# encoding.
