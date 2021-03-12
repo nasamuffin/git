@@ -649,9 +649,12 @@ e-mails.
 fsmonitor-watchman
 ~~~~~~~~~~~~~~~~~~
 
-This hook is invoked when the configuration option `core.fsmonitor` is
-set to `.git/hooks/fsmonitor-watchman` or `.git/hooks/fsmonitor-watchmanv2`
-depending on the version of the hook to use.
+This hook is invoked when the configuration option `core.fsmonitor` is set to a
+path containing an executable. It *cannot* be specified via the usual
+`hook.fsmonitor-watchman.command` configuration or by providing an executable
+in `.git/hooks/fsmonitor-watchman`. The arguments provided to the hook are
+determined by the value of the `core.fsmonitorHookVersion` configuration
+option.
 
 Version 1 takes two arguments, a version (1) and the time in elapsed
 nanoseconds since midnight, January 1, 1970.
