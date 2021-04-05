@@ -23,6 +23,7 @@
 #include "color.h"
 #include "refs.h"
 #include "worktree.h"
+#include "submodule.h"
 
 struct config_source {
 	struct config_source *prev;
@@ -2064,6 +2065,22 @@ void git_global_config(char **user_out, char **xdg_out)
 	*xdg_out = xdg_config;
 }
 
+void git_config_superproject(struct strbuf *sb, const char *common_dir)
+{
+	struct strbuf sp_common_dir = STRBUF_INIT;
+
+	get_superproject_common_dir(&sp_common_dir);
+	if (sp_common_dir.len)
+		/* definitely a submodule */
+		strbuf_addbuf(sb, &sp_common_dir);
+	else
+		/* probably not a submodule */
+		strbuf_addstr(sb, common_dir);
+
+	strbuf_release(&sp_common_dir);
+	strbuf_addstr(sb, "/config.superproject");
+}
+
 /*
  * Parse environment variable 'k' as a boolean (in various
  * possible spellings); if missing, use the default value 'def'.
@@ -2122,6 +2139,17 @@ static int do_git_config_sequence(const struct config_options *opts,
 
 	if (user_config && !access_or_die(user_config, R_OK, ACCESS_EACCES_OK))
 		ret += git_config_from_file(fn, user_config, data);
+
+	current_parsing_scope = CONFIG_SCOPE_SUPERPROJECT;
+	if (opts->git_dir && !opts->ignore_superproject) {
+
+		struct strbuf superproject_shared_cfg = STRBUF_INIT;
+		git_config_superproject(&superproject_shared_cfg, opts->git_dir);
+		if (!access_or_die(superproject_shared_cfg.buf, R_OK, 0))
+			ret += git_config_from_file(fn, superproject_shared_cfg.buf, data);
+
+		strbuf_release(&superproject_shared_cfg);
+	}
 
 	current_parsing_scope = CONFIG_SCOPE_LOCAL;
 	if (!opts->ignore_repo && repo_config &&
@@ -2254,6 +2282,7 @@ void read_very_early_config(config_fn_t cb, void *data)
 
 	opts.respect_includes = 1;
 	opts.ignore_repo = 1;
+	opts.ignore_superproject = 1;
 	opts.ignore_worktree = 1;
 	opts.ignore_cmdline = 1;
 	opts.system_gently = 1;
@@ -3758,6 +3787,8 @@ const char *config_scope_name(enum config_scope scope)
 		return "command";
 	case CONFIG_SCOPE_GITMODULES:
 		return "gitmodules";
+	case CONFIG_SCOPE_SUPERPROJECT:
+		return "superproject";
 	default:
 		return "unknown";
 	}
