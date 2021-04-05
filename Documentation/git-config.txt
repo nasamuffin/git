@@ -48,7 +48,7 @@ unset an existing `--type` specifier with `--no-type`.
 
 When reading, the values are read from the system, global and
 repository local configuration files by default, and options
-`--system`, `--global`, `--local`, `--worktree` and
+`--system`, `--global`, `--superproject`, `--local`, `--worktree` and
 `--file <filename>` can be used to tell the command to read from only
 that location (see <<FILES>>).
 
@@ -128,6 +128,17 @@ See also <<FILES>>.
 +
 For reading options: read only from system-wide `$(prefix)/etc/gitconfig`
 rather than from all available files.
++
+See also <<FILES>>.
+
+--superproject::
+	For writing options: write to the superproject's
+	`.git/config.superproject` file, even if run from a submodule of that
+	superproject.
++
+For reading options: read only from the superproject's
+`.git/config.superproject` file, even if run from a submodule of that
+superproject, rather than from all available files.
 +
 See also <<FILES>>.
 
@@ -293,7 +304,7 @@ The default is to use a pager.
 FILES
 -----
 
-If not set explicitly with `--file`, there are four files where
+If not set explicitly with `--file`, there are five files where
 'git config' will search for configuration options:
 
 $(prefix)/etc/gitconfig::
@@ -310,6 +321,12 @@ $XDG_CONFIG_HOME/git/config::
 ~/.gitconfig::
 	User-specific configuration file. Also called "global"
 	configuration file.
+
+$GIT_DIR/config.superproject::
+	When `git config` is run from a project which is a submodule of another
+	project, that superproject's $GIT_DIR will be used. Use this config file
+	to set configurations which need to be the same across a superproject
+	and all its submodules.
 
 $GIT_DIR/config::
 	Repository specific configuration file.

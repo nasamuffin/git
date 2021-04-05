@@ -167,6 +167,14 @@ void absorb_git_dir_into_superproject(const char *path,
 				      unsigned flags);
 
 /*
+ * Return the gitdir of the superproject, which this project is a submodule of.
+ * If this repository is a submodule, return 1 and fill buf with the absolute
+ * path to the superproject's gitdir. If this repository is not a submodule of
+ * another repository, return 0 and leave buf untouched.
+ */
+int get_superproject_gitdir(struct strbuf *buf);
+
+/*
  * Return the absolute path of the working tree of the superproject, which this
  * project is a submodule of. If this repository is not a submodule of
  * another repository, return 0.

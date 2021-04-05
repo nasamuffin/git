@@ -2213,6 +2213,35 @@ void absorb_git_dir_into_superproject(const char *path,
 	}
 }
 
+int get_superproject_gitdir(struct strbuf *buf)
+{
+	struct strbuf sb = STRBUF_INIT;
+	struct child_process cp = CHILD_PROCESS_INIT;
+	int rc = 0;
+
+	/* NEEDSWORK: this call also calls out to a subprocess! */
+	rc = get_superproject_working_tree(&sb);
+	strbuf_release(&sb);
+
+	if (!rc)
+		return rc;
+
+	prepare_other_repo_env(&cp.env_array, NULL);
+
+	strvec_pushl(&cp.args, "-C", "..", "rev-parse", "--absolute-git-dir", NULL);
+	cp.git_cmd = 1;
+
+	rc = capture_command(&cp, buf, 0);
+	strbuf_trim_trailing_newline(buf);
+
+	/* leave buf empty if we didn't have a superproject gitdir */
+	if (rc)
+		strbuf_reset(buf);
+
+	/* rc reflects the exit code of the rev-parse; invert into a bool */
+	return !rc;
+}
+
 int get_superproject_working_tree(struct strbuf *buf)
 {
 	struct child_process cp = CHILD_PROCESS_INIT;

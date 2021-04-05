@@ -26,7 +26,7 @@ static char key_delim = ' ';
 static char term = '\n';
 
 static int use_global_config, use_system_config, use_local_config;
-static int use_worktree_config;
+static int use_worktree_config, use_superproject_config;
 static struct git_config_source given_config_source;
 static int actions, type;
 static char *default_value;
@@ -130,6 +130,8 @@ static struct option builtin_config_options[] = {
 	OPT_GROUP(N_("Config file location")),
 	OPT_BOOL(0, "global", &use_global_config, N_("use global config file")),
 	OPT_BOOL(0, "system", &use_system_config, N_("use system config file")),
+	OPT_BOOL(0, "superproject",
+		 &use_superproject_config, N_("use superproject config file")),
 	OPT_BOOL(0, "local", &use_local_config, N_("use repository config file")),
 	OPT_BOOL(0, "worktree", &use_worktree_config, N_("use per-worktree config file")),
 	OPT_STRING('f', "file", &given_config_source.file, N_("file"), N_("use given config file")),
@@ -697,6 +699,11 @@ int cmd_config(int argc, const char **argv, const char *prefix)
 	else if (use_system_config) {
 		given_config_source.file = git_system_config();
 		given_config_source.scope = CONFIG_SCOPE_SYSTEM;
+	} else if (use_superproject_config) {
+		struct strbuf superproject_cfg = STRBUF_INIT;
+		git_config_superproject(&superproject_cfg, get_git_dir());
+		given_config_source.file = strbuf_detach(&superproject_cfg, NULL);
+		given_config_source.scope = CONFIG_SCOPE_SUPERPROJECT;
 	} else if (use_local_config) {
 		given_config_source.file = git_pathdup("config");
 		given_config_source.scope = CONFIG_SCOPE_LOCAL;
