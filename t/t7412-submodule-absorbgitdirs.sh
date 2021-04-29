@@ -30,7 +30,9 @@ test_expect_success 'absorb the git dir' '
 	git status >actual.1 &&
 	git -C sub1 rev-parse HEAD >actual.2 &&
 	test_cmp expect.1 actual.1 &&
-	test_cmp expect.2 actual.2
+	test_cmp expect.2 actual.2 &&
+
+	test_cmp_config -C sub1 true --type=bool submodule.hasSuperproject
 '
 
 test_expect_success 'absorbing does not fail for deinitialized submodules' '
@@ -61,7 +63,9 @@ test_expect_success 'absorb the git dir in a nested submodule' '
 	git status >actual.1 &&
 	git -C sub1/nested rev-parse HEAD >actual.2 &&
 	test_cmp expect.1 actual.1 &&
-	test_cmp expect.2 actual.2
+	test_cmp expect.2 actual.2 &&
+
+	test_cmp_config -C sub1/nested true --type=bool submodule.hasSuperproject
 '
 
 test_expect_success 're-setup nested submodule' '
@@ -128,6 +132,48 @@ test_expect_success 'setup a submodule with multiple worktrees' '
 test_expect_success 'absorbing fails for a submodule with multiple worktrees' '
 	test_must_fail git submodule absorbgitdirs sub3 2>error &&
 	test_i18ngrep "not supported" error
+'
+
+test_expect_success 'absorbgitdirs works when called from a superproject worktree' '
+	# set up a worktree of the superproject
+	git worktree add wt &&
+	(
+	cd wt &&
+
+	# create a new unembedded git dir
+	git init sub4 &&
+	test_commit -C sub4 first &&
+	git submodule add ./sub4 &&
+	test_tick &&
+
+	# absorb the git dir
+	git submodule absorbgitdirs sub4 &&
+
+	# make sure the submodule noted the superproject
+	test_cmp_config -C sub4 true --type=bool submodule.hasSuperproject
+	)
+'
+
+test_expect_success 'absorbgitdirs works with a submodule with worktree config' '
+	# reuse the worktree of the superproject
+	(
+	cd wt &&
+
+	# create a new unembedded git dir
+	git init sub5 &&
+	test_commit -C sub5 first &&
+	git submodule add ./sub5 &&
+	test_tick &&
+
+	# turn on worktree configs for submodule
+	git -C sub5 config extensions.worktreeConfig true &&
+
+	# absorb the git dir
+	git submodule absorbgitdirs sub5 &&
+
+	# make sure the submodule noted the superproject
+	test_cmp_config -C sub5 true --type=bool submodule.hasSuperproject
+	)
 '
 
 test_done

@@ -1735,6 +1735,8 @@ static int clone_submodule(struct module_clone_data *clone_data)
 		git_config_set_in_file(p, "submodule.alternateErrorStrategy",
 				       error_strategy);
 
+	git_config_set_in_file(p, "submodule.hasSuperproject", "true");
+
 	free(sm_alternate);
 	free(error_strategy);
 
@@ -2334,6 +2336,28 @@ static int run_update_procedure(struct update_data *ud)
 	return run_update_command(ud, subforce);
 }
 
+/*
+ * Sets 'submodule.hasSuperproject' in the submodule whose worktree is at
+ * 'sm_path'. This function assumes the current Git process is in the context of
+ * the superproject, so 'the_repository' is used as the superproject repo
+ * struct.
+ */
+static void set_hassuperproject(const char *sm_wt_path)
+{
+	struct repository sm_repo;
+	char *sm_cfg_path;
+
+	if (repo_submodule_init(&sm_repo, the_repository, sm_wt_path, null_oid()))
+		die(_("could not get a repository handle for submodule '%s'"), sm_wt_path);
+
+	sm_cfg_path = repo_git_path(&sm_repo, "config");
+
+	git_config_set_in_file(sm_cfg_path, "submodule.hasSuperproject", "true");
+
+	free(sm_cfg_path);
+	repo_clear(&sm_repo);
+}
+
 static const char *remote_submodule_branch(const char *path)
 {
 	const struct submodule *sub;
@@ -2488,6 +2512,9 @@ static int update_submodule(struct update_data *update_data)
 
 		free(remote_ref);
 	}
+
+	/* Mark that the submodule we're touching is a s ubmodule */
+	set_hassuperproject(update_data->sm_path);
 
 	if (!oideq(&update_data->oid, &update_data->suboid) || update_data->force)
 		if (run_update_procedure(update_data))

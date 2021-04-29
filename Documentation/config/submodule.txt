@@ -106,3 +106,9 @@ submodule.alternateErrorStrategy::
 	`ignore`, `info`, `die`. Default is `die`. Note that if set to `ignore`
 	or `info`, and if there is an error with the computed alternate, the
 	clone proceeds as if no alternate was specified.
+
+submodule.hasSuperproject::
+	Indicates whether this repository is a submodule. If this config is set
+	to 'true', Git may traverse the filesystem above this submodule in order
+	to identify the superproject. It is set automatically during submodule
+	creation, update, and 'git submodule absorbgitdir'.

@@ -1116,4 +1116,14 @@ test_expect_success 'submodule update --filter sets partial clone settings' '
 	test_cmp_config -C super-filter/submodule blob:none remote.origin.partialclonefilter
 '
 
+test_expect_success 'submodule update adds submodule.hasSuperproject to older repos' '
+	(cd super &&
+	 test_unconfig submodule.hasSuperproject &&
+	 test_unconfig -C submodule submodule.hasSuperproject &&
+	 git submodule update &&
+	 ! git config --get submodule.hasSuperproject &&
+	 test_cmp_config -C submodule true --type=bool submodule.hasSuperproject
+	)
+'
+
 test_done
