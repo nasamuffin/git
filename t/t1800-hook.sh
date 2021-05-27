@@ -121,7 +121,7 @@ test_expect_success 'git -c core.hooksPath=<PATH> hook run' '
 '
 
 test_expect_success 'stdin to hooks' '
-	write_script .git/hooks/test-hook <<-\EOF &&
+	test_hook test-hook <<-\EOF &&
 	echo BEGIN stdin
 	cat
 	echo END stdin
