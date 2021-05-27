@@ -2655,7 +2655,7 @@ static int update_submodules(struct update_data *update_data)
 
 	suc.update_data = update_data;
 	run_processes_parallel_tr2(suc.update_data->max_jobs, update_clone_get_next_task,
-				   update_clone_start_failure, NULL,
+				   update_clone_start_failure, NULL, NULL,
 				   update_clone_task_finished, &suc, "submodule",
 				   "parallel/update");
 
