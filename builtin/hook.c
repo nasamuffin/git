@@ -25,7 +25,7 @@ static int run(int argc, const char **argv, const char *prefix)
 	int rc = 0;
 	int ignore_missing = 0;
 	const char *hook_name;
-	const char *hook_path;
+	struct list_head *hooks;
 
 	struct option run_options[] = {
 		OPT_BOOL(0, "ignore-missing", &ignore_missing,
@@ -58,15 +58,16 @@ static int run(int argc, const char **argv, const char *prefix)
 	 * run_found_hooks() instead...
 	 */
 	hook_name = argv[0];
-	hook_path = find_hook(hook_name);
-	if (!hook_path) {
+	hooks = hook_list(hook_name);
+	if (list_empty(hooks)) {
 		/* ... act like run_hooks() under --ignore-missing */
 		if (ignore_missing)
 			return 0;
 		error("cannot find a hook named %s", hook_name);
 		return 1;
 	}
-	rc = run_found_hooks(hook_name, hook_path, &opt);
+
+	rc = run_found_hooks(hook_name, hooks, &opt);
 
 	run_hooks_opt_clear(&opt);
 
