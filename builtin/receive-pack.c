@@ -851,17 +851,18 @@ static int feed_receive_hook(void *state_)
 static int feed_receive_hook_cb(struct strbuf *pipe, void *pp_cb, void *pp_task_cb)
 {
 	struct hook_cb_data *hook_cb = pp_cb;
-	struct receive_hook_feed_state *feed_state = hook_cb->options->feed_pipe_cb_data;
+	struct hook *hook = pp_task_cb;
+	struct receive_hook_feed_state *feed_state = hook->feed_pipe_cb_data;
 	int rc;
 
 	/* first-time setup */
-	if (!hook_cb->options->feed_pipe_cb_data) {
+	if (!hook->feed_pipe_cb_data) {
 		struct receive_hook_feed_context *ctx = hook_cb->options->feed_pipe_ctx;
 		if (!ctx)
 			BUG("run_hooks_opt.feed_pipe_ctx required for receive hook");
 
-		hook_cb->options->feed_pipe_cb_data = xmalloc(sizeof(struct receive_hook_feed_state));
-		feed_state = hook_cb->options->feed_pipe_cb_data;
+		hook->feed_pipe_cb_data = xmalloc(sizeof(struct receive_hook_feed_state));
+		feed_state = hook->feed_pipe_cb_data;
 		strbuf_init(&feed_state->buf, 0);
 		feed_state->cmd = ctx->cmd;
 		feed_state->skip_broken = ctx->skip_broken;

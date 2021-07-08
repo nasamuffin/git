@@ -2,6 +2,25 @@
 #define HOOK_H
 #include "strvec.h"
 #include "run-command.h"
+#include "list.h"
+
+struct hook {
+	struct list_head list;
+	/* The path to the hook */
+	const char *hook_path;
+
+	/*
+	 * Use this to keep state for your feed_pipe_fn if you are using
+	 * run_hooks_opt.feed_pipe. Otherwise, do not touch it.
+	 */
+	void *feed_pipe_cb_data;
+};
+
+/*
+ * Provides a linked list of 'struct hook' detailing commands which should run
+ * in response to the 'hookname' event, in execution order.
+ */
+struct list_head *list_hooks(const char *hookname);
 
 struct run_hooks_opt
 {
@@ -35,12 +54,6 @@ struct run_hooks_opt
 	 */
 	feed_pipe_fn feed_pipe;
 	void *feed_pipe_ctx;
-
-	/*
-	 * Use this to keep state for your feed_pipe_fn if you are using
-	 * run_hooks_opt.feed_pipe. Otherwise, do not touch it.
-	 */
-	void *feed_pipe_cb_data;
 
 	/*
 	 * Populate this to capture output and prevent it from being printed to
@@ -80,7 +93,8 @@ struct hook_cb_data {
 	/* rc reflects the cumulative failure state */
 	int rc;
 	const char *hook_name;
-	const char *hook_path;
+	struct list_head *head;
+	struct hook *run_me;
 	struct run_hooks_opt *options;
 	int *invoked_hook;
 };
@@ -122,4 +136,10 @@ int run_hooks(const char *hook_name);
  * hook. This function behaves like the old run_hook_le() API.
  */
 int run_hooks_l(const char *hook_name, ...);
+/*
+ * Frees the list at 'head', calling 'free_hook()' on each entry and freeing the
+ * list_head struct
+ */
+void clear_hook_list(struct list_head *head);
+
 #endif
