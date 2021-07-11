@@ -184,7 +184,14 @@ static int hook_config_lookup(const char *key, const char *value, void *cb_data)
 
 		/* TODO: implement skipping hooks */
 
-		/* TODO: immplement hook aliases */
+		/*
+		 * Check if a hookcmd with that name exists. If it doesn't,
+		 * 'git_config_get_value()' is documented not to touch &command,
+		 * so we don't need to do anything.
+		 */
+		strbuf_reset(&hookcmd_name);
+		strbuf_addf(&hookcmd_name, "hookcmd.%s.command", command);
+		git_config_get_value(hookcmd_name.buf, &command);
 
 		/*
 		 * TODO: implement an option-getting callback, e.g.
