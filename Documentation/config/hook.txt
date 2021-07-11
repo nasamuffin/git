@@ -3,6 +3,11 @@ hook.<command>.command::
 	executable on your device, a oneliner for your shell, or the name of a
 	hookcmd. See linkgit:git-hook[1].
 
+hookcmd.<name>.command::
+	A command to execute during a hook for which <name> has been specified
+	as a command. This can be an executable on your device or a oneliner for
+	your shell. See linkgit:git-hook[1].
+
 hook.jobs::
 	Specifies how many hooks can be run simultaneously during parallelized
 	hook execution. If unspecified, defaults to the number of processors on

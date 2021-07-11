@@ -18,6 +18,11 @@ setup_hooks () {
 	test_config_global hook.pre-commit.command "/path/def" --add
 }
 
+setup_hookcmd () {
+	test_config hook.pre-commit.command "abc" --add
+	test_config_global hookcmd.abc.command "/path/abc" --add
+}
+
 setup_hookdir () {
 	mkdir .git/hooks
 	write_script .git/hooks/pre-commit <<-EOF
@@ -53,6 +58,20 @@ test_expect_success 'git hook list orders by config order' '
 	cat >expected <<-EOF &&
 	$ROOT/path/def
 	$ROOT/path/ghi
+	EOF
+
+	git hook list pre-commit >actual &&
+	test_cmp expected actual
+'
+
+test_expect_success 'git hook list dereferences a hookcmd' '
+	setup_hooks &&
+	setup_hookcmd &&
+
+	cat >expected <<-EOF &&
+	$ROOT/path/def
+	$ROOT/path/ghi
+	$ROOT/path/abc
 	EOF
 
 	git hook list pre-commit >actual &&

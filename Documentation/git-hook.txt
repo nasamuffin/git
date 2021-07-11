@@ -18,10 +18,44 @@ This command is an interface to git hooks (see linkgit:githooks[5]).
 Currently it only provides a convenience wrapper for running hooks for
 use by git itself. In the future it might gain other functionality.
 
-This command parses the default configuration files for sections like `hook
-"<hook name>"`. `hook` is used to describe the commands which will be run during
-a particular hook event; commands are run in the order Git encounters them
-during the configuration parse (see linkgit:git-config[1]).
+This command parses the default configuration files for sections `hook` and
+`hookcmd`. `hook` is used to describe the commands which will be run during a
+particular hook event; commands are run in the order Git encounters them during
+the configuration parse (see linkgit:git-config[1]). `hookcmd` is used to
+describe attributes of a specific command. If additional attributes don't need
+to be specified, a command to run can be specified directly in the `hook`
+section; if a `hookcmd` by that name isn't found, Git will attempt to run the
+provided value directly. For example:
+
+Global config
+----
+  [hook "post-commit"]
+    command = "linter"
+    command = "~/typocheck.sh"
+
+  [hookcmd "linter"]
+    command = "/bin/linter --c"
+----
+
+Local config
+----
+  [hook "prepare-commit-msg"]
+    command = "linter"
+  [hook "post-commit"]
+    command = "python ~/run-test-suite.py"
+----
+
+With these configs, you'd then run post-commit hooks in this order:
+
+  /bin/linter --c
+  ~/typocheck.sh
+  python ~/run-test-suite.py
+  .git/hooks/post-commit (if present)
+
+and prepare-commit-msg hooks in this order:
+
+  /bin/linter --c
+  .git/hooks/prepare-commit-msg (if present)
 
 In general, when instructions suggest adding a script to
 `.git/hooks/<something>`, you can specify it in the config instead by running
