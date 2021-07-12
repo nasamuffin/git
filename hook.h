@@ -22,6 +22,8 @@ struct hook {
 	/* The path to the hook */
 	const char *hook_path;
 
+	unsigned from_hookdir : 1;
+
 	/*
 	 * Use this to keep state for your feed_pipe_fn if you are using
 	 * run_hooks_opt.feed_pipe. Otherwise, do not touch it.

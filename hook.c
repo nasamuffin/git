@@ -117,6 +117,7 @@ struct list_head* hook_list(const char* hookname)
 		struct hook *to_add = xmalloc(sizeof(*to_add));
 		to_add->hook_path = hook_path;
 		to_add->feed_pipe_cb_data = NULL;
+		to_add->from_hookdir = 1;
 		list_add_tail(&to_add->list, hook_head);
 	}
 
@@ -200,7 +201,7 @@ static int pick_next_hook(struct child_process *cp,
 	cp->dir = hook_cb->options->dir;
 
 	/* add command */
-	if (hook_cb->options->absolute_path)
+	if (run_me->from_hookdir && hook_cb->options->absolute_path)
 		strvec_push(&cp->args, absolute_path(run_me->hook_path));
 	else
 		strvec_push(&cp->args, run_me->hook_path);
