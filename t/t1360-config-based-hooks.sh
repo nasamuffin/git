@@ -34,6 +34,19 @@ test_expect_success 'git hook rejects commands without a hookname' '
 	test_must_fail git hook list
 '
 
+test_expect_success 'git hook runs outside of a repo' '
+	setup_hooks &&
+
+	cat >expected <<-EOF &&
+	$ROOT/path/def
+	EOF
+
+	nongit git config --list --global &&
+
+	nongit git hook list pre-commit >actual &&
+	test_cmp expected actual
+'
+
 test_expect_success 'git hook list orders by config order' '
 	setup_hooks &&
 
