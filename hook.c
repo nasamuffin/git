@@ -202,7 +202,6 @@ static int hook_config_lookup(const char *key, const char *value, void *cb_data)
 struct list_head* hook_list(const char* hookname, int allow_unknown)
 {
 	struct list_head *hook_head = xmalloc(sizeof(struct list_head));
-	const char *hook_path;
 	struct strbuf hook_key = STRBUF_INIT;
 	struct hook_config_cb cb_data = { &hook_key, hook_head };
 
@@ -216,14 +215,17 @@ struct list_head* hook_list(const char* hookname, int allow_unknown)
 	git_config(hook_config_lookup, &cb_data);
 
 
-	if (allow_unknown)
-		hook_path = find_hook_gently(hookname);
-	else
-		hook_path = find_hook(hookname);
+	if (have_git_dir()) {
+		const char *hook_path;
+		if (allow_unknown)
+			hook_path = find_hook_gently(hookname);
+		else
+			hook_path = find_hook(hookname);
 
-	/* Add the hook from the hookdir */
-	if (hook_path)
-		append_or_move_hook(hook_head, hook_path)->from_hookdir = 1;
+		/* Add the hook from the hookdir */
+		if (hook_path)
+			append_or_move_hook(hook_head, hook_path)->from_hookdir = 1;
+	}
 
 	return hook_head;
 }
