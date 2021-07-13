@@ -39,7 +39,7 @@ static int list(int argc, const char **argv, const char *prefix)
 
 	hookname = argv[0];
 
-	head = hook_list(hookname);
+	head = hook_list(hookname, 1);
 
 	if (list_empty(head)) {
 		printf(_("no commands configured for hook '%s'\n"),
@@ -103,7 +103,7 @@ static int run(int argc, const char **argv, const char *prefix)
 	 * run_found_hooks() instead...
 	 */
 	hook_name = argv[0];
-	hooks = hook_list(hook_name);
+	hooks = hook_list(hook_name, 1);
 	if (list_empty(hooks)) {
 		/* ... act like run_hooks() under --ignore-missing */
 		if (ignore_missing)
