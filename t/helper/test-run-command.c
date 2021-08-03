@@ -32,8 +32,13 @@ static int parallel_next(struct child_process *cp,
 		return 0;
 
 	strvec_pushv(&cp->args, d->args.v);
+	cp->in = d->in;
+	cp->no_stdin = d->no_stdin;
 	strbuf_addstr(err, "preloaded output of a child\n");
 	number_callbacks++;
+
+	*task_cb = xmalloc(sizeof(int));
+	*(int*)(*task_cb) = 2;
 	return 1;
 }
 
@@ -52,8 +57,29 @@ static int task_finished(int result,
 			 void *pp_task_cb)
 {
 	strbuf_addstr(err, "asking for a quick stop\n");
+	if (pp_task_cb)
+		free(pp_task_cb);
 	return 1;
 }
+
+static int task_finished_quiet(int result, struct strbuf *err, void *cb, void *task_cb)
+{
+	if (task_cb)
+		free(task_cb);
+
+	return 0;
+}
+
+static int test_stdin(struct strbuf *pipe, void *cb, void *task_cb)
+{
+	int *lines_remaining = task_cb;
+
+	if (*lines_remaining)
+		strbuf_addf(pipe, "sample stdin %d\n", --(*lines_remaining));
+
+	return !(*lines_remaining);
+}
+
 
 struct testsuite {
 	struct string_list tests, failed;
@@ -105,6 +131,9 @@ static int test_finished(int result, struct strbuf *err, void *cb,
 
 	strbuf_addf(err, "%s: '%s'\n", result ? "FAIL" : "SUCCESS", name);
 
+	if (task_cb)
+		free(task_cb);
+
 	return 0;
 }
 
@@ -115,6 +144,9 @@ static int test_failed(struct strbuf *out, void *cb, void *task_cb)
 
 	string_list_append(&suite->failed, name);
 	strbuf_addf(out, "FAILED TO START: '%s'\n", name);
+
+	if (task_cb)
+		free(task_cb);
 
 	return 0;
 }
@@ -184,7 +216,7 @@ static int testsuite(int argc, const char **argv)
 		suite.tests.nr, max_jobs);
 
 	ret = run_processes_parallel(max_jobs, next_test, test_failed,
-				     test_finished, &suite);
+				     test_stdin, test_finished, &suite);
 
 	if (suite.failed.nr > 0) {
 		ret = 1;
@@ -413,15 +445,22 @@ int cmd__run_command(int argc, const char **argv)
 
 	if (!strcmp(argv[1], "run-command-parallel"))
 		exit(run_processes_parallel(jobs, parallel_next,
-					    NULL, NULL, &proc));
+					    NULL, NULL, task_finished_quiet, &proc));
 
 	if (!strcmp(argv[1], "run-command-abort"))
 		exit(run_processes_parallel(jobs, parallel_next,
-					    NULL, task_finished, &proc));
+					    NULL, NULL, task_finished, &proc));
 
 	if (!strcmp(argv[1], "run-command-no-jobs"))
 		exit(run_processes_parallel(jobs, no_job,
-					    NULL, task_finished, &proc));
+					    NULL, NULL, task_finished, &proc));
+
+	if (!strcmp(argv[1], "run-command-stdin")) {
+		proc.in = -1;
+		proc.no_stdin = 0;
+		exit (run_processes_parallel(jobs, parallel_next, NULL,
+					     test_stdin, task_finished_quiet, &proc));
+	}
 
 	fprintf(stderr, "check usage\n");
 	return 1;
