@@ -133,6 +133,9 @@ static int notify_hook_finished(int result,
 
 	hook_cb->rc |= result;
 
+	if (hook_cb->invoked_hook)
+		*hook_cb->invoked_hook = 1;
+
 	return 0;
 }
 
@@ -149,6 +152,7 @@ int run_hooks_opt(const char *hook_name, struct run_hooks_opt *options)
 		.rc = 0,
 		.hook_name = hook_name,
 		.options = options,
+		.invoked_hook = options->invoked_hook,
 	};
 	const char *const hook_path = find_hook(hook_name);
 	int jobs = 1;
