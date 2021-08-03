@@ -18,6 +18,9 @@ struct run_hooks_opt
 	 * translates to "struct child_process"'s "dir" member.
 	 */
 	const char *dir;
+
+	/* Path to file which should be piped to stdin for each hook */
+	const char *path_to_stdin;
 };
 
 #define RUN_HOOKS_OPT_INIT { \
@@ -25,6 +28,9 @@ struct run_hooks_opt
 	.args = STRVEC_INIT, \
 }
 
+/*
+ * Callback provided to feed_pipe_fn and consume_sideband_fn.
+ */
 struct hook_cb_data {
 	/* rc reflects the cumulative failure state */
 	int rc;
