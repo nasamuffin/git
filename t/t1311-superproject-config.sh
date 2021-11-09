@@ -26,6 +26,8 @@ test_expect_success 'superproject config applies to super and submodule' '
 
 '
 
+test_done
+
 test_expect_success 'can add from super or sub' '
 	git config --superproject apple.species honeycrisp &&
 	git -C sub config --superproject banana.species cavendish &&

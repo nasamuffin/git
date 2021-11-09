@@ -1845,6 +1845,7 @@ void git_config_superproject(struct strbuf *sb, const char *gitdir)
 		strbuf_addstr(sb, gitdir);
 
 	strbuf_addstr(sb, "/config.superproject");
+	fprintf(stderr, "ESS: git_config_superproject says sb = '%s'\n", sb->buf);
 }
 
 /*

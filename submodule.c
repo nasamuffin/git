@@ -2215,31 +2215,72 @@ void absorb_git_dir_into_superproject(const char *path,
 
 int get_superproject_gitdir(struct strbuf *buf)
 {
-	struct strbuf sb = STRBUF_INIT;
-	struct child_process cp = CHILD_PROCESS_INIT;
-	int rc = 0;
+	struct strbuf sb = STRBUF_INIT, parent_gitdir = STRBUF_INIT;
+	enum discovery_result rc = 0;
+	int is_submodule = 0;
 
-	/* NEEDSWORK: this call also calls out to a subprocess! */
-	rc = get_superproject_working_tree(&sb);
-	strbuf_release(&sb);
+	/** Emily says: Without this call to get_superproject_working_tree(), we
+	 * don't notice when a repo above us in the tree is *our* superproject.
+	 * This shows up most apparently when running the test suite, where
+	 * without this check, get_superproject_gitdir happily claims that the
+	 * superproject of 'git/t/trash directory.t1311-superproject-config' is 'git/.git'.
+	 */
+	is_submodule = get_superproject_working_tree(&sb);
+	if (!is_submodule) {
+		strbuf_release(&sb);
+		strbuf_release(&parent_gitdir);
+		return is_submodule;
+	}
 
-	if (!rc)
+	strbuf_realpath(&sb, "../", 0);
+	rc = setup_git_directory_gently_1(&sb, &parent_gitdir, 0);
+	fprintf(stderr, "ESS: setup_git_directory_gently_1 says sb = %s\n", sb.buf);
+	/** Emily says: This second print will highlight the problem with
+	 * GIT_DIR_ENVIRONMENT in setup.c:setup_git_directory_gently_1 (see
+	 * comment there).
+	 */
+	fprintf(stderr, "ESS: setup_git_directory_gently_1 says parent gitdir is %s\n", parent_gitdir.buf);
+	/* see setup.c 'enum discovery_result' */
+	if (rc <= 0)
 		return rc;
 
-	prepare_other_repo_env(&cp.env_array, NULL);
+	strbuf_addf(buf, "../%s", parent_gitdir.buf);
+	strbuf_normalize_path(buf);
 
-	strvec_pushl(&cp.args, "-C", "..", "rev-parse", "--absolute-git-dir", NULL);
-	cp.git_cmd = 1;
+	strbuf_release(&sb);
+	strbuf_release(&parent_gitdir);
 
-	rc = capture_command(&cp, buf, 0);
-	strbuf_trim_trailing_newline(buf);
-
-	/* leave buf empty if we didn't have a superproject gitdir */
-	if (rc)
-		strbuf_reset(buf);
-
-	/* rc reflects the exit code of the rev-parse; invert into a bool */
+	/* positive nonzero rc = success */
 	return !rc;
+
+	/** Emily says: For reference, below is the implementation which uses a
+	 * subprocess.
+	 */
+	//struct strbuf sb = STRBUF_INIT;
+	//struct child_process cp = CHILD_PROCESS_INIT;
+	//int rc = 0;
+
+	///* NEEDSWORK: this call also calls out to a subprocess! */
+	//rc = get_superproject_working_tree(&sb);
+	//strbuf_release(&sb);
+
+	//if (!rc)
+	//	return rc;
+
+	//prepare_other_repo_env(&cp.env_array, NULL);
+
+	//strvec_pushl(&cp.args, "-C", "..", "rev-parse", "--absolute-git-dir", NULL);
+	//cp.git_cmd = 1;
+
+	//rc = capture_command(&cp, buf, 0);
+	//strbuf_trim_trailing_newline(buf);
+
+	///* leave buf empty if we didn't have a superproject gitdir */
+	//if (rc)
+	//	strbuf_reset(buf);
+
+	///* rc reflects the exit code of the rev-parse; invert into a bool */
+	//return !rc;
 }
 
 int get_superproject_working_tree(struct strbuf *buf)
@@ -2270,6 +2311,17 @@ int get_superproject_working_tree(struct strbuf *buf)
 	prepare_submodule_repo_env(&cp.env_array);
 	strvec_pop(&cp.env_array);
 
+	/** Emily says: I think get_superproject_working_tree() would be much
+	 * harder to convert, as it needs to call 'git ls-files' on the
+	 * superproject, not just know about the superproject's gitdir. I don't
+	 * know that we would be able to do that check in-memory without
+	 * significant work.
+	 *
+	 * (Here it's asking the superproject to 'git ls-files
+	 * <path-to-submodule>' to find out whether it actually belongs to the
+	 * superproject, which dodges the trash dir case I mentioned in a
+	 * comment above.
+	 */
 	strvec_pushl(&cp.args, "--literal-pathspecs", "-C", "..",
 		     "ls-files", "-z", "--stage", "--full-name", "--",
 		     subpath, NULL);

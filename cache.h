@@ -628,6 +628,18 @@ void setup_work_tree(void);
  */
 int discover_git_directory(struct strbuf *commondir,
 			   struct strbuf *gitdir);
+enum discovery_result {
+	GIT_DIR_NONE = 0,
+	GIT_DIR_EXPLICIT,
+	GIT_DIR_DISCOVERED,
+	GIT_DIR_BARE,
+	/* these are errors */
+	GIT_DIR_HIT_CEILING = -1,
+	GIT_DIR_HIT_MOUNT_POINT = -2,
+	GIT_DIR_INVALID_GITFILE = -3
+};
+
+enum discovery_result setup_git_directory_gently_1(struct strbuf*, struct strbuf*, int);
 const char *setup_git_directory_gently(int *);
 const char *setup_git_directory(void);
 char *prefix_path(const char *prefix, int len, const char *path);

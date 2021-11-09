@@ -1025,17 +1025,6 @@ static int canonicalize_ceiling_entry(struct string_list_item *item,
 	}
 }
 
-enum discovery_result {
-	GIT_DIR_NONE = 0,
-	GIT_DIR_EXPLICIT,
-	GIT_DIR_DISCOVERED,
-	GIT_DIR_BARE,
-	/* these are errors */
-	GIT_DIR_HIT_CEILING = -1,
-	GIT_DIR_HIT_MOUNT_POINT = -2,
-	GIT_DIR_INVALID_GITFILE = -3
-};
-
 /*
  * We cannot decide in this function whether we are in the work tree or
  * not, since the config can only be read _after_ this function was called.
@@ -1049,7 +1038,7 @@ enum discovery_result {
  * the discovered .git/ directory, if any. If `gitdir` is not absolute, it
  * is relative to `dir` (i.e. *not* necessarily the cwd).
  */
-static enum discovery_result setup_git_directory_gently_1(struct strbuf *dir,
+enum discovery_result setup_git_directory_gently_1(struct strbuf *dir,
 							  struct strbuf *gitdir,
 							  int die_on_error)
 {
@@ -1067,6 +1056,10 @@ static enum discovery_result setup_git_directory_gently_1(struct strbuf *dir,
 	 */
 	gitdirenv = getenv(GIT_DIR_ENVIRONMENT);
 	if (gitdirenv) {
+		/** Emily says: This case catches an attempt to call
+		 * setup_git_directory_gently_1("$PWD/..", out, 0);
+		 * because it picks up the submodule's GIT_DIR_ENVIRONMENT.
+		 */
 		strbuf_addstr(gitdir, gitdirenv);
 		return GIT_DIR_EXPLICIT;
 	}
