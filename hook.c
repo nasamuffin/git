@@ -48,9 +48,10 @@ static int pick_next_hook(struct child_process *cp,
 			  void **pp_task_cb)
 {
 	struct hook_cb_data *hook_cb = pp_cb;
+	struct hook_state *hook_state = &hook_cb->hook_state;
 	const char *hook_path = hook_cb->hook_path;
 
-	if (!hook_path)
+	if (!hook_state->active)
 		return 0;
 
 	strvec_pushv(&cp->env_array, hook_cb->options->env.v);
@@ -73,7 +74,7 @@ static int pick_next_hook(struct child_process *cp,
 	 * running one hook, so indicate that no more work will be
 	 * done.
 	 */
-	hook_cb->hook_path = NULL;
+	hook_state->active = 0;
 
 	return 1;
 }
@@ -122,6 +123,9 @@ int run_hooks_opt(const char *hook_name, struct run_hooks_opt *options)
 		.rc = 0,
 		.hook_name = hook_name,
 		.options = options,
+		.hook_state = {
+			.active = 1,
+		},
 	};
 	const char *const hook_path = find_hook(hook_name);
 	int jobs = 1;

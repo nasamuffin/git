@@ -42,12 +42,17 @@ struct run_hooks_opt
 	.args = STRVEC_INIT, \
 }
 
+struct hook_state {
+	unsigned int active;
+};
+
 struct hook_cb_data {
 	/* rc reflects the cumulative failure state */
 	int rc;
 	const char *hook_name;
 	const char *hook_path;
 	struct run_hooks_opt *options;
+	struct hook_state hook_state;
 };
 
 /*
