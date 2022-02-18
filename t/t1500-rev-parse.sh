@@ -244,7 +244,15 @@ test_expect_success 'showing the superproject correctly' '
 	test_must_fail git -C super merge branch1 &&
 
 	git -C super/dir/sub rev-parse --show-superproject-working-tree >out &&
-	test_cmp expect out
+	test_cmp expect out &&
+
+	# When submodule.hasSuperproject=false, --show-superproject-working-tree
+	# should fail instead of checking the filesystem.
+	test_config -C super/dir/sub submodule.hasSuperproject false &&
+	git -C super/dir/sub rev-parse --show-superproject-working-tree >out &&
+	# --show-superproject-working-tree should print an error about the
+	# broken config
+	! grep "error:.*hasSuperproject" out
 '
 
 # at least one external project depends on this behavior:
