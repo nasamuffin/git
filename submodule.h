@@ -169,6 +169,13 @@ void absorb_git_dir_into_superproject(const char *path,
 				      unsigned flags);
 
 /*
+ * Populate 'super_common_dir' with the common dir of this repository's
+ * superproject. Returns 0 if 'super_common_dir' was populated. Prior contents
+ * of 'super_common_dir' may be discarded if the common dir isn't found.
+ */
+int get_superproject_common_dir(struct strbuf *super_common_dir);
+
+/*
  * Return the absolute path of the working tree of the superproject, which this
  * project is a submodule of. If this repository is not a submodule of
  * another repository, return 0.

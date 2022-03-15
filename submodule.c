@@ -2394,6 +2394,59 @@ void absorb_git_dir_into_superproject(const char *path,
 	}
 }
 
+/*
+ * Populates 'super_common_dir' with the absolute path to the superproject's
+ * common dir, if it's present. If it's not present, 'super_common_dir''s
+ * contents may be discarded.
+ *
+ * Returns 0 if 'super_common_dir' was populated with a path, -1 if the current
+ * repository doesn't have 'submodule.hasSuperproject' set, and the nonzero exit
+ * status of "git rev-parse" if something else went wrong.
+ */
+int get_superproject_common_dir(struct strbuf *super_common_dir)
+{
+	struct child_process cp = CHILD_PROCESS_INIT;
+	int has_superproject_cfg = 0;
+	int rc;
+
+	/*
+	 * In contrast to get_superproject_working_tree(), this function was
+	 * added only after 'submodule.hasSuperproject' was introduced, so we
+	 * can rely on that config to decide whether to search for a
+	 * superproject. If the config isn't set, or if it's set to 'false',
+	 * then don't bother looking for a superproject.
+	 */
+	if (git_config_get_bool("submodule.hassuperproject", &has_superproject_cfg)
+	    || !has_superproject_cfg)
+		return -1;
+
+	strvec_pushl(&cp.args, "-C", "..", "rev-parse",
+		     "--path-format=absolute", "--git-common-dir", NULL);
+	/* unset GIT_DIR to avoid hinting rev-parse our gitdir instead of its own */
+	prepare_other_repo_env(&cp.env_array, NULL);
+
+	cp.git_cmd = 1;
+	/*
+	 * NEEDSWORK: rev-parse can fail for other reasons; this pollutes the
+	 * user's output with errors they can't act on. For now, swallow all
+	 * errors from rev-parse and simply return a failure code from this
+	 * function.
+	 *
+	 * One such failure occurs when the worktree of the superproject is set
+	 * via core.worktree but doesn't exist (for example in t4060 "diff
+	 * --submodule=diff recurses into deleted nested submodules") - although
+	 * rev-parse could figure out the common dir in this case, it fails
+	 * trying to chdir to the nonexistent worktree tracked in core.worktree.
+	 * Fixing this bug would involve some diving into rev-parse but in
+	 * practice the config may not be needed for this kind of scenario.
+	 */
+	cp.no_stderr = 1;
+
+	rc = capture_command(&cp, super_common_dir, 0);
+	strbuf_trim_trailing_newline(super_common_dir);
+	return rc;
+}
+
 int get_superproject_working_tree(struct strbuf *buf)
 {
 	struct child_process cp = CHILD_PROCESS_INIT;
