@@ -2435,9 +2435,7 @@ int get_superproject_working_tree(struct strbuf *buf)
 
 	subpath = relative_path(cwd, one_up.buf, &sb);
 	strbuf_release(&one_up);
-
-	prepare_submodule_repo_env(&cp.env_array);
-	strvec_pop(&cp.env_array);
+	prepare_other_repo_env(&cp.env_array, NULL);
 
 	strvec_pushl(&cp.args, "--literal-pathspecs", "-C", "..",
 		     "ls-files", "-z", "--stage", "--full-name", "--",

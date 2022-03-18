@@ -1824,7 +1824,11 @@ void prepare_other_repo_env(struct strvec *env_array, const char *new_git_dir)
 		    strcmp(*var, CONFIG_COUNT_ENVIRONMENT))
 			strvec_push(env_array, *var);
 	}
-	strvec_pushf(env_array, "%s=%s", GIT_DIR_ENVIRONMENT, new_git_dir);
+
+	if (!new_git_dir)
+		strvec_push(env_array, GIT_DIR_ENVIRONMENT);
+	else
+		strvec_pushf(env_array, "%s=%s", GIT_DIR_ENVIRONMENT, new_git_dir);
 }
 
 enum start_bg_result start_bg_command(struct child_process *cmd,

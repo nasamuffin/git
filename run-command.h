@@ -483,8 +483,8 @@ int run_processes_parallel_tr2(int n, get_next_task_fn, start_failure_fn,
  * new repo. This adds all GIT_* environment variables to env_array with the
  * exception of GIT_CONFIG_PARAMETERS and GIT_CONFIG_COUNT (which cause the
  * corresponding environment variables to be unset in the subprocess) and adds
- * an environment variable pointing to new_git_dir. See local_repo_env in
- * cache.h for more information.
+ * an environment variable pointing to new_git_dir. If new_git_dir is NULL,
+ * unset GIT_DIR. See local_repo_env in cache.h for more information.
  */
 void prepare_other_repo_env(struct strvec *env_array, const char *new_git_dir);
 
