@@ -1666,15 +1666,19 @@ static int pp_start_one(struct parallel_processes *pp)
 	return 0;
 }
 
-static void pp_buffer_stdin(struct parallel_processes *pp)
+/*
+ * Returns 0 if we can expect more stdin to be written after this call, or 1 if
+ * the callback is finished providing stdin.
+ */
+static int pp_buffer_stdin(struct parallel_processes *pp)
 {
 	int i;
 	struct strbuf sb = STRBUF_INIT;
+	int done = 1;
+
 
 	/* Buffer stdin for each pipe. */
 	for (i = 0; i < pp->max_processes; i++) {
-		int done;
-
 		if (!(pp->children[i].state == GIT_CP_WORKING &&
 		      pp->children[i].process.in > 0))
 			continue;
@@ -1695,6 +1699,7 @@ static void pp_buffer_stdin(struct parallel_processes *pp)
 	}
 
 	strbuf_release(&sb);
+	return done;
 }
 
 static void pp_buffer_stderr(struct parallel_processes *pp, int output_timeout)
@@ -1809,7 +1814,6 @@ int run_processes_parallel(int n,
 			   void *pp_cb)
 {
 	int i, code;
-	int output_timeout = 100;
 	int spawn_cap = 4;
 	struct parallel_processes pp;
 
@@ -1817,6 +1821,7 @@ int run_processes_parallel(int n,
 
 	pp_init(&pp, n, get_next_task, start_failure, feed_pipe, consume_sideband, task_finished, pp_cb);
 	while (1) {
+		int output_timeout = 0;
 		for (i = 0;
 		    i < spawn_cap && !pp.shutdown &&
 		    pp.nr_processes < pp.max_processes;
@@ -1832,7 +1837,14 @@ int run_processes_parallel(int n,
 		}
 		if (!pp.nr_processes)
 			break;
-		pp_buffer_stdin(&pp);
+		/*
+		 * If pp_buffer_stdin() returns 0, there will be more stdin to
+		 * write. So, we shouldn't block for a long time polling the
+		 * stderr buffer. However, once it returns 1, we can avoid a
+		 * tight spin on stderr because there is nothing else to write.
+		 */
+		if (pp_buffer_stdin(&pp))
+			output_timeout = 100;
 		pp_buffer_stderr(&pp, output_timeout);
 		pp_output(&pp);
 		code = pp_collect_finished(&pp);
