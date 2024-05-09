@@ -231,6 +231,22 @@ static int ut_010bug_BUG(int argc UNUSED, const char **argv UNUSED)
 	BUG("a %s message", "BUG");
 }
 
+static int ut_011signal(int argc, const char **argv)
+{
+	const char *usage_error = "expect <bool common>";
+	int common = 0;
+
+	if (argc != 1 || get_i(&common, argv[0]))
+		die("%s", usage_error);
+
+	/*
+	 * There is no strong reason SIGSEGV is ignored by trace2 - it's just
+	 * not included by sigchain_push_common().
+	 */
+	raise(common ? SIGINT : SIGSEGV);
+	return 0; /*unreachable*/
+}
+
 /*
  * Single-threaded timer test.  Create several intervals using the
  * TEST1 timer.  The test script can verify that an aggregate Trace2
@@ -482,6 +498,7 @@ static struct unit_test ut_table[] = {
 	{ ut_008bug,      "008bug",    "" },
 	{ ut_009bug_BUG,  "009bug_BUG","" },
 	{ ut_010bug_BUG,  "010bug_BUG","" },
+	{ ut_011signal,   "011signal","" },
 
 	{ ut_100timer,    "100timer",  "<count> <ms_delay>" },
 	{ ut_101timer,    "101timer",  "<count> <ms_delay> <threads>" },

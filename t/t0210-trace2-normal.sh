@@ -244,6 +244,28 @@ test_expect_success 'bug messages followed by BUG() are written to trace2' '
 	test_cmp expect actual
 '
 
+test_expect_success 'trace2 reports common signals' '
+	test_when_finished "rm trace.normal actual" &&
+
+	# signals are fatal, so expect this to fail
+	! GIT_TRACE2="$(pwd)/trace.normal" test-tool trace2 011signal 1 &&
+
+	perl "$TEST_DIRECTORY/t0210/scrub_normal.perl" <trace.normal >actual &&
+
+	test_grep "signal elapsed:" actual
+'
+
+test_expect_success 'trace2 ignores uncommon signals' '
+	test_when_finished "rm trace.normal actual" &&
+
+	# signals are fatal, so expect this to fail
+	! GIT_TRACE2="$(pwd)/trace.normal" test-tool trace2 011signal 0 &&
+
+	perl "$TEST_DIRECTORY/t0210/scrub_normal.perl" <trace.normal >actual &&
+
+	test_grep ! "signal elapsed:" actual
+'
+
 sane_unset GIT_TRACE2_BRIEF
 
 # Now test without environment variables and get all Trace2 settings

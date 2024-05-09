@@ -231,7 +231,7 @@ void trace2_initialize_fl(const char *file, int line)
 	tr2_sid_get();
 
 	atexit(tr2main_atexit_handler);
-	sigchain_push(SIGPIPE, tr2main_signal_handler);
+	sigchain_push_common(tr2main_signal_handler);
 	tr2tls_init();
 
 	/*
