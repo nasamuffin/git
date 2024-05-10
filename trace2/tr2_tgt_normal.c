@@ -48,30 +48,46 @@ static void fn_term(void)
 	tr2_dst_trace_disable(&tr2dst_normal);
 }
 
-static void normal_fmt_prepare(const char *file, int line, struct strbuf *buf)
+static int normal_fmt_prepare(const char *file, int line, char *buf, size_t buf_alloc)
 {
-	strbuf_setlen(buf, 0);
+	int buf_len = 0;
 
 	if (!tr2env_normal_be_brief) {
 		struct tr2_tbuf tb_now;
 
 		tr2_tbuf_local_time(&tb_now);
-		strbuf_addstr(buf, tb_now.buf);
-		strbuf_addch(buf, ' ');
 
-		if (file && *file)
-			strbuf_addf(buf, "%s:%d ", file, line);
-		while (buf->len < TR2FMT_NORMAL_FL_WIDTH)
-			strbuf_addch(buf, ' ');
+		buf_len = xsnprintf(buf, buf_alloc, "%s %s%s%d ",
+					 tb_now.buf,
+					 (file && *file) ? file : "",
+					 (file && *file) ? ":" : "",
+					 (file && *file) ? line : ' '
+					);
+
+		/*
+		 * Pad the prepared prefix with ' ' to preferred line width.
+		 * Do not exceed the allocated length.
+		 */
+		while (buf_len < TR2FMT_NORMAL_FL_WIDTH &&
+		       buf_len < buf_alloc)
+			buf[buf_len++] = ' ';
 	}
+
+	return buf_len;
 }
 
 static void normal_io_write_fl(const char *file, int line,
 			       const struct strbuf *buf_payload)
 {
 	struct strbuf buf_line = STRBUF_INIT;
+	int prepared_len;
 
-	normal_fmt_prepare(file, line, &buf_line);
+	strbuf_grow(&buf_line, TR2FMT_NORMAL_FL_WIDTH * 2);
+	prepared_len = normal_fmt_prepare(file,
+					  line,
+					  buf_line.buf,
+					  strbuf_avail(&buf_line));
+	strbuf_setlen(&buf_line, prepared_len);
 	strbuf_addbuf(&buf_line, buf_payload);
 	tr2_dst_write_line(&tr2dst_normal, &buf_line);
 	strbuf_release(&buf_line);
@@ -108,15 +124,24 @@ static void fn_exit_fl(const char *file, int line, uint64_t us_elapsed_absolute,
 	strbuf_release(&buf_payload);
 }
 
+/* Called on fatal signal. Do not allocate memory in this function. */
 static void fn_signal(uint64_t us_elapsed_absolute, int signo)
 {
-	struct strbuf buf_payload = STRBUF_INIT;
+	char line[500];
+	size_t line_len = 0;
 	double elapsed = (double)us_elapsed_absolute / 1000000.0;
 
-	strbuf_addf(&buf_payload, "signal elapsed:%.6f code:%d", elapsed,
-		    signo);
-	normal_io_write_fl(__FILE__, __LINE__, &buf_payload);
-	strbuf_release(&buf_payload);
+	/* Avoid using normal_io_write_fl because it does heap alloc */
+	line_len = normal_fmt_prepare(__FILE__, __LINE__, line, sizeof(line));
+	line_len += xsnprintf(
+		  line + line_len,
+		  /* Leave room for the null terminator. */
+		  sizeof(line) - line_len - 1,
+		  "signal elapsed:%.6f code:%d",
+		  elapsed,
+		  signo);
+	line[line_len] = '\0';
+	tr2_dst_write_line_no_alloc(&tr2dst_normal, line, line_len);
 }
 
 static void fn_atexit(uint64_t us_elapsed_absolute, int code)

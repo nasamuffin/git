@@ -35,4 +35,13 @@ int tr2_dst_trace_want(struct tr2_dst *dst);
  */
 void tr2_dst_write_line(struct tr2_dst *dst, struct strbuf *buf_line);
 
+/*
+ * Write a single line/message to the trace file, without allocating new memory.
+ * Strings passed to this function must already end in newline as they cannot
+ * be safely resized.
+ *
+ * Returns nonzero in case of write failure.
+ */
+int tr2_dst_write_line_no_alloc(struct tr2_dst *dst, char *line, size_t len);
+
 #endif /* TR2_DST_H */

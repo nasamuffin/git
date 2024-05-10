@@ -362,10 +362,20 @@ int tr2_dst_trace_want(struct tr2_dst *dst)
 
 void tr2_dst_write_line(struct tr2_dst *dst, struct strbuf *buf_line)
 {
+	strbuf_complete_line(buf_line); /* ensure final NL on buffer */
+
+
+	if ( !tr2_dst_write_line_no_alloc(dst, buf_line->buf, buf_line->len)
+	     && tr2_dst_want_warning())
+		warning("unable to write trace to '%s': %s",
+			tr2_sysenv_display_name(dst->sysenv_var),
+			strerror(errno));
+}
+
+int tr2_dst_write_line_no_alloc(struct tr2_dst *dst, char *buf, size_t buf_len)
+{
 	int fd = tr2_dst_get_trace_fd(dst);
 	ssize_t bytes;
-
-	strbuf_complete_line(buf_line); /* ensure final NL on buffer */
 
 	/*
 	 * We do not use write_in_full() because we do not want
@@ -383,14 +393,9 @@ void tr2_dst_write_line(struct tr2_dst *dst, struct strbuf *buf_line)
 	 * If we get an IO error, just close the trace dst.
 	 */
 	sigchain_push(SIGPIPE, SIG_IGN);
-	bytes = write(fd, buf_line->buf, buf_line->len);
+	bytes = write(fd, buf, buf_len);
 	sigchain_pop(SIGPIPE);
-	if (bytes >= 0)
-		return;
-
-	tr2_dst_trace_disable(dst);
-	if (tr2_dst_want_warning())
-		warning("unable to write trace to '%s': %s",
-			tr2_sysenv_display_name(dst->sysenv_var),
-			strerror(errno));
+	if (bytes < 0)
+		tr2_dst_trace_disable(dst);
+	return bytes < 0;
 }
