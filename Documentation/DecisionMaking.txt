@@ -3,49 +3,135 @@ Decision-Making Process in the Git Project
 
 Introduction
 ------------
-This document describes the current decision-making process in the Git
-project. It is a descriptive rather than prescriptive doc; that is, we want to
-describe how things work in practice rather than explicitly recommending any
-particular process or changes to the current process.
-
 Here we document how the project makes decisions for discussions
 (with or without patches), in scale larger than an individual patch
 series (which is fully covered by the SubmittingPatches document).
 
+Presenting Large Discussions
+----------------------------
 
-Larger Discussions (with patches)
----------------------------------
-As with discussions on an individual patch series, starting a larger-scale
-discussion often begins by sending a patch or series to the list. This might
-take the form of an initial design doc, with implementation following in later
-iterations of the series (for example,
-link:https://lore.kernel.org/git/0169ce6fb9ccafc089b74ae406db0d1a8ff8ac65.1688165272.git.steadmon@google.com/[adding unit tests] or
-link:https://lore.kernel.org/git/20200420235310.94493-1-emilyshaffer@google.com/[config-based hooks]),
-or it might include a full implementation from the beginning.
-In either case, discussion progresses the same way for an individual patch series,
-until consensus is reached or the topic is dropped.
+These larger scale discussions are usually presented one of three ways, each
+with some benefits and drawbacks:
 
+_By a patch series implementing the larger feature (or a proof-of-concept)_
 
-Larger Discussions (without patches)
-------------------------------------
-Occasionally, larger discussions might occur without an associated patch series.
-These may be very large-scale technical decisions that are beyond the scope of
-even a single large patch series, or they may be more open-ended,
-policy-oriented discussions (examples:
-link:https://lore.kernel.org/git/ZZ77NQkSuiRxRDwt@nand.local/[introducing Rust]
-or link:https://lore.kernel.org/git/YHofmWcIAidkvJiD@google.com/[improving submodule UX]).
-In either case, discussion progresses as described above for general patch series.
+This approach makes your intent very clear to reviewers. However, the author
+should expect that proof-of-concept to need modification; because the project
+may decide to take a different approach than is first proposed, it's a good idea
+to limit the amount of time spent on this proof-of-concept in the first place.
+Working on a series for two months, only to hear that the project wants it
+written completely differently, can be very demoralizing.
 
-For larger discussions without a patch series or other concrete implementation,
-it may be hard to judge when consensus has been reached, as there are not any
-official guidelines. If discussion stalls at this point, it may be helpful to
-restart discussion with an RFC patch series (such as a partial, unfinished
-implementation or proof of concept) that can be more easily debated.
+_By a patch proposing a design doc (which may or may not come with an
+implementation too)_
 
-When consensus is reached that it is a good idea, the original
-proposer is expected to coordinate the effort to make it happen,
-with help from others who were involved in the discussion, as
-needed.
+Writing a full design doc can be faster than writing an initial implementation.
+However, there's more risk that the design as written doesn't end up being
+feasible to implement, or that significant changes are needed along the way.
+It's also possible that reviewers could feel skeptical about the implementation
+ever appearing, and be less willing to deeply review the proposal as a result.
+
+Example: link:https://lore.kernel.org/git/0169ce6fb9ccafc089b74ae406db0d1a8ff8ac65.1688165272.git.steadmon@google.com/[adding unit tests]
+
+_By a mailing list discussion with no patch series or design doc_
+
+Like with the design doc approach, it's possible reviewers may worry the code
+will never come. However, this approach is easiest to spin organically from
+another discussion. (Although spinning off organically may also limit the review
+audience more than intended.)
+
+Example: link:https://lore.kernel.org/git/YHofmWcIAidkvJiD@google.com/[improving submodule UX]).
+
+Regardless of which way the discussion is presented, for the discussion to go
+quickly and smoothly, try to make the following answers clear:
+
+* What prompted the need for this change? (What's the underlying use case? Did
+  something change, or is this a new need?)
+* What other approaches have been considered, if any?
+* Why does the author think the proposed approach is the best one?
+* What concerns or open questions remain?
+
+Gaining Consensus
+-----------------
+
+Once the project agrees that some proposed approach is worth doing, the author
+can get on with implementing it (if they didn't already send an implementation
+to begin with). But how to tell that the project agrees?
+
+When replying to the proposal, reviewers should make sure to explicitly state
+one of the following:
+
+* More information is needed to decide whether this proposal is useful or not.
+  (Make sure to give hints about where more detail should be included.)
+* I am happy with the direction of this proposal, but think it needs some small
+  adjustments. (Make sure to include constructive feedback about which
+  adjustments these are.)
+* I am happy with this proposal as it is; if we do it just like this, it will be
+  good for the project.
+* I do not want us to take this proposal (and do not see an adjustment that will
+  make it acceptable to me). We should solve your problem another way, or not at
+  all.
+
+It is up to the proposer to suggest a reasonable timeframe for discussion,
+keeping in mind the size of the proposal (do not suggest two days to turn around
+a massive and nuanced directional shift) and the general availability of project
+contributors (remember that not everyone lives in the USA, and not everyone
+works on Git during the business day or even business week). Reviewers should
+feel free to recommend changes to this timeframe if the proposer is off-base,
+but it is up to the proposer to accept that recommendation or not. Keep in mind
+that if the timeframe is too short, time-strapped reviewers are much more likely
+to just say no.
+
+The timeframe is intended to add predictability to the process. Proposers will
+know that, one way or another, they will have a decision in N weeks, rather than
+having the discussion stretch out for months and months without a clear result
+in sight. It is also intended to make it easier for reviewers to prioritize -
+rather than saying "I can respond to this series any time, I'll come back to it
+next time I have some spare time, whenever that is", reviewers can say, "This
+sounds interesting, I only have until next Friday, so I'd better set aside
+some time to do it" or "It's interesting, but not interesting enough to make
+time for this week, so I'll be OK with whatever result".
+
+The author should mention this timeframe clearly at the beginning of the
+proposal, e.g. "Let's decide by February 31st, 2048", and be willing to adjust
+the timeline as the proposal iterates - just because we thought it would take
+two weeks at v1 does not mean that a v2 mailed 10 days after v1 should be
+reviewed in only 4 days.
+
+At the end of this timeframe, it is up to the proposer or maintainer to count up
+responses with "yes as is", "yes with changes", or "no" and determine the will
+of the project. The maintainer may decide one or two well-defended "nos" from
+respected long-term contributors weighs more than a handful of less-defended
+"yeses" from brand-new reviewers (or from reviewers whose paychecks are signed
+by the same person as the author's).
+
+If the project votes against the proposal, it may make sense for the proposer to
+clarify the circumstances which would cause the "no" voters to change their
+mind - for example, if many voted "no" because some other large-scale effort
+is too painful and blocking the proposal, the author may want to retract the
+proposal for now, work on the large-scale effort for a while, then suggest the
+proposal again once there is less prerequisite work in the way.
+
+Implementing the Decision
+-------------------------
+
+Once the decision is made, if the effort proposed is large enough to span
+multiple series or a long period of time, it's a good idea to document it by
+adding a design doc (probably the one used to propose the approach) to
+`Documentation/technical/`. Implementation series can point to this design doc
+to remind reviewers that the end goal is already agreed on.
+
+If the discussion took place around the cover letter of a series which already
+had an implementation included, agreeing on the *direction* does not necessarily
+mean that the *implementation* is acceptable. Once the community is in agreement
+on the direction, the series author can continue to workshop the patches with
+confidence that they're working on a result the project actually wants, but the
+patches may not be ready for immediate merging. (We are separating "is this a
+good idea?" from "is the code correct?")
+
+When consensus is reached that it is a good idea, the original proposer is
+expected to coordinate the effort to make it happen, with help from others who
+were involved in the discussion, as needed.
 
 For decisions that require code changes, it is often the case that the original
 proposer will follow up with a patch series, although it is also common for
@@ -72,3 +158,6 @@ We prefer that "official" discussion happens on the list so that the full
 community has opportunity to engage in discussion. This also means that the
 mailing list archives contain a more-or-less complete history of project
 discussions and decisions.
+
+In practice, this may look like adding a timeline and gathering consensus as
+above on a summary thread on the mailing list.
