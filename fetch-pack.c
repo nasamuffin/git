@@ -603,7 +603,9 @@ static int mark_complete(const struct object_id *oid)
 {
 	struct commit *commit = deref_without_lazy_fetch(oid, 1);
 
-	if (commit && !(commit->object.flags & COMPLETE)) {
+	if (commit &&
+	    !(commit->object.flags & COMPLETE) &&
+	    has_object(the_repository, oid, 0)) {
 		commit->object.flags |= COMPLETE;
 		commit_list_insert(commit, &complete);
 	}

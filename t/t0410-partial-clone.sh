@@ -241,6 +241,36 @@ test_expect_success 'fetching of missing objects works with ref-in-want enabled'
 	grep "fetch< fetch=.*ref-in-want" trace
 '
 
+test_expect_success 'fetching missing objects pointed to by a local ref' '
+	rm -rf reliable-server unreliable-client &&
+	test_when_finished rm -rf reliable-server unreliable-client &&
+	test_create_repo reliable-server &&
+	git -C reliable-server config uploadpack.allowanysha1inwant 1 &&
+	git -C reliable-server config uploadpack.allowfilter 1 &&
+	test_commit -C reliable-server foo &&
+
+	git clone --filter=blob:none "file://$(pwd)/reliable-server" unreliable-client &&
+
+	# to simulate the unreliable client losing a referenced object by
+	# corruption, create the object on the server side, then create only a
+	# reference to that object on the client side (without providing the
+	# object itself).
+	test_commit -C reliable-server bar &&
+	HASH=$(git -C reliable-server rev-parse HEAD) &&
+	echo "$HASH" >unreliable-client/.git/refs/heads/bar &&
+
+	# the object is really missing
+	# check if we can rev-parse a partial SHA. partial so we do not fetch it,
+	# but barely partial (trim only the last char) so that we do not collide
+	test_must_fail git -C unreliable-client rev-parse ${HASH%%?} &&
+
+	# trigger a remote fetch by checking out `bar`
+	git -C unreliable-client switch bar &&
+
+	# and now we have the missing object
+	git -C unreliable-client rev-parse ${HASH%%?}
+'
+
 test_expect_success 'fetching of missing objects from another promisor remote' '
 	git clone "file://$(pwd)/server" server2 &&
 	test_commit -C server2 bar &&
