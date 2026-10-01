@@ -72,3 +72,9 @@ We prefer that "official" discussion happens on the list so that the full
 community has opportunity to engage in discussion. This also means that the
 mailing list archives contain a more-or-less complete history of project
 discussions and decisions.
+
+Formal Voting
+-------------
+When a decision cannot be reached by general consensus or compromise, a formal
+vote may be called. See link:CommunityVoting.adoc[Community Voting] for details
+of this process.

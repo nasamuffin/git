@@ -1,0 +1,100 @@
+Voting in the Git Project
+=========================
+
+For the most part, technical concerns in Git should be resolved by community
+consensus - either on the mailing list or in one of the annual-ish Contributor
+Summits. Voting should be used as a last resort when the community really and
+truly cannot come to a compromise on a policy decision. As such, the initiation
+of a vote should be generally agreed on by the mailto:git@sfconservancy.org[Git
+PLC] or primary maintainer.
+
+The voting discussion should be held to a single (huge) thread, to make it easy
+to refer back to the decision process when looking at the successful proposal
+after the process concludes. The thread may be structured like so:
+
+--------
+Formal vote: Commit subject line style guide
+  Re: Formal vote: Commit subject line style guide
+  ...
+  [PROPOSAL] Require emojis in commit subjects
+    Re: [PROPOSAL] Require emojis in commit subjects
+    [PROPOSAL v2] Require emojis in commit subjects
+      Re: [PROPOSAL v2] Require emojis in commit subjects
+      ...
+          [PROPOSAL v4] Require emojis in commit subjects
+  [PROPOSAL] Require Camel Case In Commit Subjects
+    Re: [PROPOSAL] Require Camel Case In Commit Subjects
+    [PROPOSAL v2] Require Camel Case In Commit Subjects
+  [PROPOSAL] forbid capitalization in commit subjects
+  ...
+--------
+
+A formal vote has three phases:
+
+1. Proposal collection and refinement
+2. Voting window
+3. Implementation
+
+Phase 1: Proposal collection and refinement
+-------------------------------------------
+
+Proposals should be formatted as a patch to Git's documentation, for easier
+review and implementation once landed. Anyone who is eligible to vote is
+eligible to submit a proposal. To avoid noise on the final ballot, a proposal
+will only be added to the ballot if it has been seconded by another eligible
+voter, indicated by a `Seconded-by:` footer in the patch's commit message.
+
+After the first draft of the proposal has been sent, the community is
+encouraged to discuss and polish the proposal, just like any other code review.
+Keep in mind that these proposals still need to be voted on, so it is likely
+counterproductive to use the discussion period to try to completely change the
+nature of the proposal or the mind of the author.
+
+This phase should last around 4 weeks in order to provide plenty of time for
+community members to write proposals and respond to feedback, and make space
+for contributors' individual timezone and availability differences. The
+maintainer or PLC member who sends the kickoff message should also include the
+closing date for proposal collection.
+
+It may also be useful to invite expert feedback during this time, e.g. from
+Software Freedom Conservancy's legal counsel, depending on the topic under
+consideration.
+
+Phase 2: Voting window
+----------------------
+
+The final version of each seconded proposal will be collected into a ballot at
+the end of Phase 1. When the ballot is prepared, eligible voters will be able
+to vote by mail for two weeks, to make space for contributors' individual
+timezone and availability differences. During this time the proposals may no
+longer be altered; the ballot should refer to a specific version of the
+proposal (e.g. `[PROPOSAL v4] Require emojis in commit subjects`) and any later
+version of the proposal will be ignored.
+
+Votes will be decided using <mechanism TBD>.
+
+Phase 3: Implementation
+-----------------------
+
+When the voting window ends, the winning proposal should be merged to `main`
+without delay by the maintainer. The commit message should be appended to
+include a link to the top of the voting discussion thread so that the
+discussion can be revisited by history divers in the future, as well as a brief
+summary of the result of the vote (% in favor out of total number of
+proposals).
+
+Voting Eligibility
+------------------
+
+Votes are welcome from contributors who have authored a commit which has been
+merged to next, or who have provided 2 or more code reviews, and who have not
+been banned from participation in the project. All eligible contributor votes
+are weighed equally, regardless of the overall number of contributions they
+have landed.
+
+To prevent dogpiling, contributions are only eligible for a given vote if they
+landed before the beginning of the voting process (the kickoff email mentioned
+above). That is, the code reviews must have been sent or the patch must have
+been accepted before the initial email is sent. The intention is to ensure the
+mailing list isn't spammed with low-quality reviews during the voting process
+solely to increase the number of eligible voters on one side of the issue.
